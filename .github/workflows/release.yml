@@ -3,7 +3,10 @@ name: Build & Release Signed APK
 on:
   push:
     tags:
-      - 'v*'          # triggers on any tag like v1.0, v1.2.3
+      - 'v*'   # runs when you push tags like v1.0, v1.2.3
+
+permissions:
+  contents: write   # REQUIRED to create GitHub releases
 
 jobs:
   build:
@@ -11,31 +14,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
+
+      # ── 1. Checkout repository ─────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Java 17 ───────────────────────────────────────────────────────────
+      # ── 2. Setup Java 17 ───────────────────────────────────
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: "17"
+          distribution: "temurin"
           cache: gradle
 
-      # ── 3. Gradle permissions ────────────────────────────────────────────────
+      # ── 3. Give Gradle permission ──────────────────────────
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # ── 4. Decode keystore from secret ───────────────────────────────────────
-      # Store your keystore as a Base64-encoded GitHub Secret named KEYSTORE_BASE64
-      # Generate with: base64 -w 0 your-release-key.jks > keystore.b64
-      # Then copy the output into the GitHub Secret.
+      # ── 4. Decode keystore from GitHub secret ──────────────
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/release.jks
 
-      # ── 5. Build signed release APK ──────────────────────────────────────────
+      # ── 5. Build Signed Release APK ────────────────────────
       - name: Build Signed Release APK
         env:
           RELEASE_STORE_FILE: ${{ github.workspace }}/release.jks
@@ -44,14 +45,14 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon
 
-      # ── 6. Rename APK with version tag ───────────────────────────────────────
+      # ── 6. Rename APK using tag version ────────────────────
       - name: Rename APK
         run: |
           VERSION="${{ github.ref_name }}"
           cp app/build/outputs/apk/release/app-release.apk \
              app/build/outputs/apk/release/LNCT-Attendance-${VERSION}.apk
 
-      # ── 7. Create GitHub Release & upload APK ────────────────────────────────
+      # ── 7. Create GitHub Release + Upload APK ──────────────
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -65,16 +66,17 @@ jobs:
 
             ### Install
             Download the APK below and install it on your Android device.
-            Enable **"Install from unknown sources"** in Settings if prompted.
 
-            > Minimum Android version: **8.0 (Oreo)**
+            Enable **Install from unknown sources** if prompted.
+
+            **Minimum Android Version:** Android 8.0 (Oreo)
           files: app/build/outputs/apk/release/LNCT-Attendance-${{ github.ref_name }}.apk
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── 8. Clean up keystore ─────────────────────────────────────────────────
+      # ── 8. Delete keystore after build ─────────────────────
       - name: Delete keystore
         if: always()
         run: rm -f ${{ github.workspace }}/release.jks
