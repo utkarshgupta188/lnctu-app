@@ -1,13 +1,16 @@
 package com.meow.lnctattendance
 
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -18,8 +21,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,6 +35,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.res.ResourcesCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.meow.lnctattendance.data.AttendanceData
@@ -48,11 +57,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // Read darkMode pref at root so the whole tree recomposes on toggle
             val context = LocalContext.current
             val prefs = remember { PreferencesManager(context) }
             val systemDark = isSystemInDarkTheme()
-            // null = not yet set → fall back to system default
             val darkModePref by prefs.darkMode.collectAsStateWithLifecycle(initialValue = null)
             val isDark = darkModePref ?: systemDark
 
@@ -77,15 +84,14 @@ private fun AttendanceApp(
 ) {
     val scope = rememberCoroutineScope()
 
-    val authState by prefs.authState.collectAsStateWithLifecycle(initialValue = AuthState.Loading)
-    val credentials by vm.credentials.collectAsStateWithLifecycle()
+    val authState       by prefs.authState.collectAsStateWithLifecycle(initialValue = AuthState.Loading)
+    val credentials     by vm.credentials.collectAsStateWithLifecycle()
     val attendanceState by vm.attendanceState.collectAsStateWithLifecycle()
-    val lastLoginEvent by vm.lastLoginEvent.collectAsStateWithLifecycle()
+    val lastLoginEvent  by vm.lastLoginEvent.collectAsStateWithLifecycle()
 
-    var showLogin by remember { mutableStateOf(false) }
+    var showLogin            by remember { mutableStateOf(false) }
     var initialLoadAttempted by remember { mutableStateOf(false) }
 
-    // Auto-login from saved credentials on app launch
     LaunchedEffect(authState) {
         if (!initialLoadAttempted && authState is AuthState.Authenticated) {
             val login = (authState as AuthState.Authenticated).login
@@ -97,14 +103,12 @@ private fun AttendanceApp(
         }
     }
 
-    // Persist successful login credentials
     LaunchedEffect(lastLoginEvent) {
         lastLoginEvent?.let { (_, user, pass) ->
             scope.launch { prefs.saveLastLogin("", user, pass, System.currentTimeMillis()) }
         }
     }
 
-    // Fallback to login screen if a request returns 401 unauthorized or credentials wiped
     LaunchedEffect(attendanceState) {
         if (initialLoadAttempted && attendanceState is UiState.Idle && credentials == null) {
             showLogin = true
@@ -115,30 +119,26 @@ private fun AttendanceApp(
         scope.launch { prefs.setDarkMode(!isDark) }
     }
 
-    // Wait until DataStore finishes its first read
-    if (authState is AuthState.Loading && !initialLoadAttempted) {
-        // App launch blank screen/splash transition
-        return
-    }
+    if (authState is AuthState.Loading && !initialLoadAttempted) return
 
     if (showLogin) {
         LoginScreen(
-            // Pre-fill username if available in authState
             savedUsername = (authState as? AuthState.Authenticated)?.login?.username ?: "",
-            isDark = isDark,
-            onToggleDark = onToggleDark,
-            onLogin = { user, pass ->
+            isDark        = isDark,
+            onToggleDark  = onToggleDark,
+            onLogin       = { user, pass ->
                 showLogin = false
                 vm.login(user, pass)
             },
         )
     } else {
         MainNavigation(
-            vm = vm,
-            username = credentials?.first ?: (authState as? AuthState.Authenticated)?.login?.username ?: "",
-            isDark = isDark,
+            vm           = vm,
+            username     = credentials?.first
+                ?: (authState as? AuthState.Authenticated)?.login?.username ?: "",
+            isDark       = isDark,
             onToggleDark = onToggleDark,
-            onLogout = {
+            onLogout     = {
                 scope.launch {
                     prefs.clear()
                     vm.logout()
@@ -164,22 +164,43 @@ private fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var showPass by remember { mutableStateOf(false) }
 
+    // Load the round mipmap as a Bitmap via ResourcesCompat (works for any drawable/mipmap type)
+    val context = LocalContext.current
+    val iconPainter = remember {
+        val drawable = ResourcesCompat.getDrawable(
+            context.resources,
+            R.mipmap.ic_launcher_round,
+            context.theme,
+        )
+        if (drawable is BitmapDrawable) {
+            BitmapPainter(drawable.bitmap.asImageBitmap())
+        } else {
+            // Fallback: render adaptive drawable to bitmap at 192×192 px
+            val bmp = android.graphics.Bitmap.createBitmap(192, 192, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            drawable?.setBounds(0, 0, 192, 192)
+            drawable?.draw(canvas)
+            BitmapPainter(bmp.asImageBitmap())
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
-        // Dark-mode toggle top-right
+
+        // ── Dark-mode toggle (top-right) ──
         IconButton(
-            onClick = onToggleDark,
+            onClick  = onToggleDark,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 48.dp, end = 12.dp),
         ) {
             Icon(
-                imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                imageVector        = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
                 contentDescription = if (isDark) "Switch to light mode" else "Switch to dark mode",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                tint               = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        // Login form centred
+        // ── Scrollable login form ──
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -190,54 +211,49 @@ private fun LoginScreen(
         ) {
             Spacer(Modifier.height(80.dp))
 
-            // Logo
-            Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = Primary.copy(alpha = 0.13f),
-                modifier = Modifier.size(84.dp),
-            ) {
-                Icon(
-                    Icons.Default.School,
-                    contentDescription = null,
-                    modifier = Modifier.padding(20.dp),
-                    tint = Primary,
-                )
-            }
+            // ── App icon — round mipmap loaded as Bitmap, clipped to circle ──
+            Image(
+                painter            = iconPainter,
+                contentDescription = "App Icon",
+                modifier           = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape),
+            )
 
             Spacer(Modifier.height(22.dp))
             Text(
-                "LNCT Attendance",
-                fontSize = 28.sp,
+                text       = "LNCT Attendance",
+                fontSize   = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color      = MaterialTheme.colorScheme.onBackground,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "Sign in to view your attendance",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text      = "Sign in to view your attendance",
+                fontSize  = 14.sp,
+                color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
             Spacer(Modifier.height(36.dp))
 
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Student Username") },
-                leadingIcon = { Icon(Icons.Default.Person, null, tint = Primary) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                value           = username,
+                onValueChange   = { username = it },
+                label           = { Text("Student Username") },
+                leadingIcon     = { Icon(Icons.Default.Person, null, tint = Primary) },
+                singleLine      = true,
+                modifier        = Modifier.fillMaxWidth(),
+                shape           = RoundedCornerShape(14.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             )
             Spacer(Modifier.height(14.dp))
             OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                leadingIcon = { Icon(Icons.Default.Lock, null, tint = Primary) },
-                trailingIcon = {
+                value                = password,
+                onValueChange        = { password = it },
+                label                = { Text("Password") },
+                leadingIcon          = { Icon(Icons.Default.Lock, null, tint = Primary) },
+                trailingIcon         = {
                     IconButton(onClick = { showPass = !showPass }) {
                         Icon(
                             if (showPass) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -246,24 +262,25 @@ private fun LoginScreen(
                         )
                     }
                 },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                visualTransformation = if (showPass) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine           = true,
+                modifier             = Modifier.fillMaxWidth(),
+                shape                = RoundedCornerShape(14.dp),
+                visualTransformation = if (showPass) VisualTransformation.None
+                                       else PasswordVisualTransformation(),
+                keyboardOptions      = KeyboardOptions(keyboardType = KeyboardType.Password),
             )
 
             Spacer(Modifier.height(28.dp))
 
             Button(
-                onClick = {
+                onClick  = {
                     if (username.isNotBlank() && password.isNotBlank()) onLogin(username, password)
                 },
-                enabled = username.isNotBlank() && password.isNotBlank(),
+                enabled  = username.isNotBlank() && password.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape  = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Primary),
             ) {
                 Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -271,11 +288,39 @@ private fun LoginScreen(
 
             Spacer(Modifier.height(16.dp))
             Text(
-                "Credentials are securely stored locally on your device",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text      = "Credentials are securely stored locally on your device",
+                fontSize  = 12.sp,
+                color     = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+
+            Spacer(Modifier.height(28.dp))
+
+            // ── Made by credit ──
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.Code,
+                    contentDescription = null,
+                    tint               = Primary.copy(alpha = 0.80f),
+                    modifier           = Modifier.size(14.dp),
+                )
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    text     = "Made by ",
+                    fontSize = 12.sp,
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text       = "Utkarsh Gupta",
+                    fontSize   = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = Primary,
+                )
+            }
+
             Spacer(Modifier.height(40.dp))
         }
     }
@@ -290,11 +335,11 @@ private enum class NavDest(
     val icon: ImageVector,
     val iconSelected: ImageVector,
 ) {
-    Home("Home",           Icons.Outlined.Home,        Icons.Filled.Home),
-    Analysis("Analysis",   Icons.Outlined.BarChart,    Icons.Filled.BarChart),
-    Risk("Risk",           Icons.Outlined.Security,    Icons.Filled.Security),
+    Home("Home",           Icons.Outlined.Home,          Icons.Filled.Home),
+    Analysis("Analysis",   Icons.Outlined.BarChart,      Icons.Filled.BarChart),
+    Risk("Risk",           Icons.Outlined.Security,      Icons.Filled.Security),
     Leave("Leave",         Icons.Outlined.CalendarMonth, Icons.Filled.CalendarMonth),
-    Timetable("Timetable", Icons.Outlined.ViewModule,  Icons.Filled.ViewModule),
+    Timetable("Timetable", Icons.Outlined.ViewModule,    Icons.Filled.ViewModule),
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -318,12 +363,10 @@ private fun MainNavigation(
     val weekState       by vm.weekState.collectAsStateWithLifecycle()
     val timetableState  by vm.timetableState.collectAsStateWithLifecycle()
 
-    // Lazy-load per tab
     LaunchedEffect(currentDest) {
         when (currentDest) {
             NavDest.Analysis  -> if (analysisState is UiState.Idle) vm.fetchAnalysis()
             NavDest.Risk      -> if (riskState is UiState.Idle) vm.fetchRiskEngine()
-            // Do not auto-fetch anything for Leave here, let the LeaveScreen handle it on button click
             NavDest.Timetable -> vm.fetchTimetable()
             else              -> Unit
         }
@@ -333,30 +376,24 @@ private fun MainNavigation(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(
-                        currentDest.label,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                    )
+                    Text(currentDest.label, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 actions = {
-                    // Dark / light mode toggle
                     IconButton(onClick = onToggleDark) {
                         Icon(
-                            imageVector = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
+                            imageVector        = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
                             contentDescription = "Toggle theme",
-                            tint = MaterialTheme.colorScheme.onSurface,
+                            tint               = MaterialTheme.colorScheme.onSurface,
                         )
                     }
-                    // Logout
                     IconButton(onClick = onLogout) {
                         Icon(
                             Icons.Default.Logout,
                             contentDescription = "Logout",
-                            tint = MaterialTheme.colorScheme.onSurface,
+                            tint               = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 },
@@ -370,74 +407,70 @@ private fun MainNavigation(
                 NavDest.entries.forEach { dest ->
                     NavigationBarItem(
                         selected = currentDest == dest,
-                        onClick = { currentDest = dest },
-                        icon = {
+                        onClick  = { currentDest = dest },
+                        icon     = {
                             Icon(
                                 if (currentDest == dest) dest.iconSelected else dest.icon,
                                 contentDescription = dest.label,
                             )
                         },
-                        label = { Text(dest.label, fontSize = 11.sp) },
+                        label  = { Text(dest.label, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Primary,
                             selectedTextColor = Primary,
-                            indicatorColor = Primary.copy(alpha = 0.14f),
+                            indicatorColor    = Primary.copy(alpha = 0.14f),
                         ),
                     )
                 }
             }
         },
     ) { innerPadding ->
-        Box(
-            Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-        ) {
+        Box(Modifier.fillMaxSize().padding(innerPadding)) {
             AnimatedContent(
-                targetState = currentDest,
+                targetState    = currentDest,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
-                label = "nav_anim",
+                label          = "nav_anim",
             ) { dest ->
                 when (dest) {
                     NavDest.Home -> TabContent(
-                        state = attendanceState,
+                        state          = attendanceState,
                         loadingMessage = "Fetching attendance…",
-                        onRetry = { vm.refresh() },
+                        onRetry        = { vm.refresh() },
                     ) { data: AttendanceData ->
                         HomeScreen(
-                            data = data,
-                            username = username,
+                            data        = data,
+                            username    = username,
                             studentName = data.studentName,
-                            onRefresh = { vm.refresh() }
+                            onRefresh   = { vm.refresh() },
                         )
                     }
 
                     NavDest.Analysis -> TabContent(
-                        state = analysisState,
+                        state          = analysisState,
                         loadingMessage = "Analyzing attendance…",
-                        onRetry = { vm.fetchAnalysis() },
+                        onRetry        = { vm.fetchAnalysis() },
                     ) { data: AnalysisData ->
                         AnalysisScreen(data = data, onRefresh = { vm.fetchAnalysis() })
                     }
 
                     NavDest.Risk -> TabContent(
-                        state = riskState,
+                        state          = riskState,
                         loadingMessage = "Calculating risk…",
-                        onRetry = { vm.fetchRiskEngine() },
+                        onRetry        = { vm.fetchRiskEngine() },
                     ) { data: RiskEngineData ->
                         RiskScreen(data = data, onRefresh = { vm.fetchRiskEngine() })
                     }
 
                     NavDest.Leave -> LeaveTabContent(
-                        weekState = weekState,
+                        weekState  = weekState,
                         leaveState = leaveState,
-                        vm = vm,
+                        vm         = vm,
                     )
 
                     NavDest.Timetable -> TabContent(
-                        state = timetableState,
+                        state          = timetableState,
                         loadingMessage = "Loading timetable…",
-                        onRetry = { vm.fetchTimetable() },
+                        onRetry        = { vm.fetchTimetable() },
                     ) { data: TimetableData ->
                         TimetableScreen(data = data)
                     }
@@ -472,13 +505,13 @@ private inline fun <reified T> TabContent(
 
 @Composable
 private fun LeaveTabContent(
-    weekState: UiState<WeekSimulatorData>,
+    weekState:  UiState<WeekSimulatorData>,
     leaveState: UiState<LeaveSimulatorData>,
     vm: AttendanceViewModel,
 ) {
     LeaveScreen(
-        weekState = weekState,
-        dayState = leaveState,
+        weekState     = weekState,
+        dayState      = leaveState,
         onSimulateDay = { day -> vm.fetchLeaveSimulator(day) },
         onLoadWeek    = { vm.fetchWeekSimulator() },
     )

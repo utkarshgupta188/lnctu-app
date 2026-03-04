@@ -11,8 +11,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.Image
-import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
@@ -28,14 +26,12 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
@@ -45,7 +41,6 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.meow.lnctattendance.R
 import com.meow.lnctattendance.data.ApiService
 import com.meow.lnctattendance.prefs.AuthState
 import com.meow.lnctattendance.prefs.PreferencesManager
@@ -64,11 +59,9 @@ private val KEY_PERCENTAGE = doublePreferencesKey("percentage")
 private val KEY_STATUS     = stringPreferencesKey("status")
 private val KEY_LAST_FETCH = longPreferencesKey("last_fetch_ms")
 
-// Breakpoints:
-// SMALL  = 2×1 cells → just % + refresh
-// LARGE  = 3×2 cells → full layout with icon + stats
-private val SIZE_SMALL = DpSize(140.dp, 60.dp)
-private val SIZE_LARGE = DpSize(200.dp, 110.dp)
+private val SIZE_SMALL  = DpSize(57.dp,  57.dp)
+private val SIZE_MEDIUM = DpSize(130.dp, 57.dp)
+private val SIZE_LARGE  = DpSize(200.dp, 110.dp)
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -77,19 +70,13 @@ private fun isInternetAvailable(context: Context): Boolean {
     val network = cm.activeNetwork ?: return false
     val caps = cm.getNetworkCapabilities(network) ?: return false
     return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+           caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
 }
 
 private fun formatTimestamp(ms: Long): String {
     if (ms == 0L) return "Never updated"
     val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
-    return "Updated ${sdf.format(Date(ms))}"
-}
-
-private fun pctColor(pct: Double) = when {
-    pct >= 75 -> Color(0xFF4CAF50)
-    pct >= 65 -> Color(0xFFFFC107)
-    else      -> Color(0xFFE53935)
+    return "Updated at ${sdf.format(Date(ms))}"
 }
 
 // ── Widget ─────────────────────────────────────────────────────────────────────
@@ -101,20 +88,26 @@ class AttendanceWidgetReceiver : GlanceAppWidgetReceiver() {
 class AttendanceWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition
 
-    override val sizeMode = SizeMode.Responsive(setOf(SIZE_SMALL, SIZE_LARGE))
+    override val sizeMode = SizeMode.Responsive(
+        setOf(SIZE_SMALL, SIZE_MEDIUM, SIZE_LARGE)
+    )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        // Read current state to check last fetch time
         val currentState = androidx.glance.appwidget.state.getAppWidgetState(
             context, PreferencesGlanceStateDefinition, id
         )
         val lastFetchMs = currentState[KEY_LAST_FETCH] ?: 0L
         val now = System.currentTimeMillis()
         val shouldFetch = isInternetAvailable(context) &&
-                (now - lastFetchMs) >= TWO_HOURS_MS
+                          (now - lastFetchMs) >= TWO_HOURS_MS
 
         if (shouldFetch) {
-            Log.d(TAG, "Auto-refreshing (${(now - lastFetchMs) / 60000}min since last fetch)")
+            Log.d(TAG, "Auto-refreshing attendance (last fetch ${(now - lastFetchMs) / 60000}min ago)")
             performFetch(context, id)
+        } else {
+            Log.d(TAG, "Skipping auto-refresh — internet=${isInternetAvailable(context)}, " +
+                       "age=${(now - lastFetchMs) / 60000}min")
         }
 
         provideContent {
@@ -131,16 +124,18 @@ class AttendanceWidget : GlanceAppWidget() {
             if (size.width >= SIZE_LARGE.width && size.height >= SIZE_LARGE.height) {
                 AttendanceWidgetLarge(present, absent, total, percentage, status)
             } else {
-                AttendanceWidgetSmall(percentage, status)
+                AttendanceWidgetCompact(percentage, status)
             }
         }
     }
 }
 
-// ── Fetch logic ────────────────────────────────────────────────────────────────
+// ── Shared fetch logic ─────────────────────────────────────────────────────────
 
 internal suspend fun performFetch(context: Context, id: GlanceId) {
-    val authState = PreferencesManager(context).authState.firstOrNull()
+    val prefsManager = PreferencesManager(context)
+    val authState = prefsManager.authState.firstOrNull()
+
     if (authState !is AuthState.Authenticated) {
         updateAppWidgetState(context, id) { state ->
             state[KEY_STATUS] = "Login in app first"
@@ -148,20 +143,23 @@ internal suspend fun performFetch(context: Context, id: GlanceId) {
         AttendanceWidget().update(context, id)
         return
     }
+
     try {
         val data = ApiService.fetchAttendance(
             authState.login.username,
             authState.login.password
         )
+        val now = System.currentTimeMillis()
         updateAppWidgetState(context, id) { state ->
             state[KEY_PRESENT]    = data.present
             state[KEY_ABSENT]     = data.absent
             state[KEY_TOTAL]      = data.totalClasses
             state[KEY_PERCENTAGE] = data.percentage
-            state[KEY_LAST_FETCH] = System.currentTimeMillis()
+            state[KEY_LAST_FETCH] = now
+            // Clear old text status — timestamp will be used instead
             state[KEY_STATUS]     = ""
         }
-        Log.d(TAG, "Fetched: ${data.percentage}%")
+        Log.d(TAG, "Fetch success: ${data.percentage}%")
     } catch (e: Exception) {
         Log.e(TAG, "Fetch failed: ${e.message}", e)
         updateAppWidgetState(context, id) { state ->
@@ -171,39 +169,31 @@ internal suspend fun performFetch(context: Context, id: GlanceId) {
     AttendanceWidget().update(context, id)
 }
 
-// ── Small layout: 2×1 — just percentage + refresh ─────────────────────────────
+// ── Compact layout ─────────────────────────────────────────────────────────────
 
 @Composable
-fun AttendanceWidgetSmall(percentage: Double, status: String) {
+fun AttendanceWidgetCompact(percentage: Double, status: String) {
     val pctColor = pctColor(percentage)
-    Row(
+
+    Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .appWidgetBackground()
             .background(Color(0xFF1A1A27))
             .cornerRadius(16.dp)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // App icon
-        Image(
-            provider = ImageProvider(R.mipmap.ic_launcher),
-            contentDescription = "LNCT",
-            modifier = GlanceModifier.size(28.dp),
-            contentScale = ContentScale.Fit
-        )
-        Spacer(modifier = GlanceModifier.width(8.dp))
-        // Percentage
         Text(
             text = "${"%.1f".format(percentage)}%",
             style = TextStyle(
                 color = androidx.glance.unit.ColorProvider(pctColor),
-                fontSize = 22.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
-            ),
-            modifier = GlanceModifier.defaultWeight()
+            )
         )
-        // Refresh
+        Spacer(modifier = GlanceModifier.height(6.dp))
         Text(
             text = "↻",
             style = TextStyle(
@@ -213,12 +203,26 @@ fun AttendanceWidgetSmall(percentage: Double, status: String) {
             ),
             modifier = GlanceModifier
                 .clickable(actionRunCallback<RefreshAttendanceAction>())
-                .padding(4.dp)
+                .background(Color(0xFF22223A))
+                .cornerRadius(8.dp)
+                .padding(horizontal = 10.dp, vertical = 4.dp)
         )
+        val size = LocalSize.current
+        if (size.height > 80.dp && status.isNotEmpty()) {
+            Spacer(modifier = GlanceModifier.height(4.dp))
+            Text(
+                text = status,
+                style = TextStyle(
+                    color = androidx.glance.unit.ColorProvider(Color.Gray),
+                    fontSize = 9.sp
+                ),
+                maxLines = 1
+            )
+        }
     }
 }
 
-// ── Large layout: 3×2 — icon + % + stats ──────────────────────────────────────
+// ── Large layout ───────────────────────────────────────────────────────────────
 
 @Composable
 fun AttendanceWidgetLarge(
@@ -233,26 +237,20 @@ fun AttendanceWidgetLarge(
             .appWidgetBackground()
             .background(Color(0xFF1A1A27))
             .cornerRadius(16.dp)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // ── Header: icon + title + refresh ────────────────
+        // Header
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                provider = ImageProvider(R.mipmap.ic_launcher),
-                contentDescription = "LNCT",
-                modifier = GlanceModifier.size(22.dp),
-                contentScale = ContentScale.Fit
-            )
-            Spacer(modifier = GlanceModifier.width(6.dp))
             Text(
-                text = "Attendance",
+                text = "LNCT Attendance",
                 style = TextStyle(
                     color = androidx.glance.unit.ColorProvider(Color.White),
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = GlanceModifier.defaultWeight()
@@ -261,85 +259,73 @@ fun AttendanceWidgetLarge(
                 text = "↻",
                 style = TextStyle(
                     color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)),
-                    fontSize = 18.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = GlanceModifier
                     .clickable(actionRunCallback<RefreshAttendanceAction>())
-                    .padding(start = 6.dp, top = 2.dp, end = 0.dp, bottom = 2.dp)
+                    .padding(start = 8.dp, top = 4.dp, end = 0.dp, bottom = 4.dp)
             )
         }
 
-        Spacer(modifier = GlanceModifier.height(6.dp))
+        Spacer(modifier = GlanceModifier.height(10.dp))
 
-        // ── Percentage + stats side by side ───────────────
+        // Big percentage
+        Text(
+            text = "${"%.1f".format(percentage)}%",
+            style = TextStyle(
+                color = androidx.glance.unit.ColorProvider(pctColor),
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold
+            )
+        )
+
+        Spacer(modifier = GlanceModifier.height(14.dp))
+
+        // Stats row
         Row(
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .background(Color(0xFF22223A))
+                .cornerRadius(12.dp)
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Big %
-            Text(
-                text = "${"%.1f".format(percentage)}%",
-                style = TextStyle(
-                    color = androidx.glance.unit.ColorProvider(pctColor),
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = GlanceModifier.defaultWeight()
-            )
-
-            // Stats column
-            Column(
-                modifier = GlanceModifier
-                    .background(Color(0xFF22223A))
-                    .cornerRadius(10.dp)
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                StatRow("P", present.toString(), Color(0xFF4CAF50))
-                Spacer(modifier = GlanceModifier.height(2.dp))
-                StatRow("A", absent.toString(),  Color(0xFFE53935))
-                Spacer(modifier = GlanceModifier.height(2.dp))
-                StatRow("T", total.toString(),   Color(0xFF6C63FF))
-            }
+            CompactStat("Present", present.toString(), Color(0xFF4CAF50), GlanceModifier.defaultWeight())
+            CompactStat("Absent",  absent.toString(),  Color(0xFFE53935), GlanceModifier.defaultWeight())
+            CompactStat("Total",   total.toString(),   Color(0xFF6C63FF), GlanceModifier.defaultWeight())
         }
 
-        Spacer(modifier = GlanceModifier.height(5.dp))
-
-        // ── Timestamp ─────────────────────────────────────
-        Text(
-            text = status,
-            style = TextStyle(
-                color = androidx.glance.unit.ColorProvider(Color(0xFF666688)),
-                fontSize = 10.sp
-            ),
-            maxLines = 1,
-            modifier = GlanceModifier.fillMaxWidth()
-        )
+        if (status.isNotEmpty()) {
+            Spacer(modifier = GlanceModifier.height(8.dp))
+            Text(
+                text = status,
+                style = TextStyle(
+                    color = androidx.glance.unit.ColorProvider(Color.Gray),
+                    fontSize = 11.sp
+                ),
+                maxLines = 1
+            )
+        }
     }
 }
 
 @Composable
-private fun StatRow(label: String, value: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = label,
-            style = TextStyle(
-                color = androidx.glance.unit.ColorProvider(Color(0xFF888888)),
-                fontSize = 10.sp
-            ),
-            modifier = GlanceModifier.width(12.dp)
-        )
-        Spacer(modifier = GlanceModifier.width(4.dp))
-        Text(
-            text = value,
-            style = TextStyle(
-                color = androidx.glance.unit.ColorProvider(color),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
+fun CompactStat(label: String, value: String, color: Color, modifier: GlanceModifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = value, style = TextStyle(
+            color = androidx.glance.unit.ColorProvider(color),
+            fontSize = 16.sp, fontWeight = FontWeight.Bold))
+        Text(text = label, style = TextStyle(
+            color = androidx.glance.unit.ColorProvider(Color.Gray),
+            fontSize = 11.sp))
     }
+}
+
+private fun pctColor(pct: Double) = when {
+    pct >= 75 -> Color(0xFF4CAF50)
+    pct >= 65 -> Color(0xFFFFC107)
+    else      -> Color(0xFFE53935)
 }
 
 // ── Refresh Action ─────────────────────────────────────────────────────────────
@@ -348,10 +334,13 @@ class RefreshAttendanceAction : ActionCallback {
     override suspend fun onAction(
         context: Context, glanceId: GlanceId, parameters: ActionParameters
     ) {
+        // Show "Updating…" immediately
         updateAppWidgetState(context, glanceId) { state ->
             state[KEY_STATUS] = "Updating…"
         }
         AttendanceWidget().update(context, glanceId)
+
+        // Then fetch fresh data
         performFetch(context, glanceId)
     }
 }

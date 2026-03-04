@@ -20,23 +20,46 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            // Values injected by CI via environment variables (set in GitHub Secrets).
+            // For local builds, set these in your local ~/.gradle/gradle.properties:
+            //   RELEASE_STORE_FILE=/path/to/your.keystore
+            //   RELEASE_STORE_PASSWORD=yourStorePassword
+            //   RELEASE_KEY_ALIAS=yourKeyAlias
+            //   RELEASE_KEY_PASSWORD=yourKeyPassword
+            val storeFilePath = System.getenv("RELEASE_STORE_FILE")
+                ?: project.findProperty("RELEASE_STORE_FILE") as String?
+            val storePass = System.getenv("RELEASE_STORE_PASSWORD")
+                ?: project.findProperty("RELEASE_STORE_PASSWORD") as String?
+            val keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                ?: project.findProperty("RELEASE_KEY_ALIAS") as String?
+            val keyPass = System.getenv("RELEASE_KEY_PASSWORD")
+                ?: project.findProperty("RELEASE_KEY_PASSWORD") as String?
+
+            if (storeFilePath != null && storePass != null && keyAlias != null && keyPass != null) {
+                storeFile = file(storeFilePath)
+                storePassword = storePass
+                this.keyAlias = keyAlias
+                keyPassword = keyPass
+            }
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
