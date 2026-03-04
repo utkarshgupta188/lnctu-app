@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">LNCT Attendance</string>
+    <string name="attendance_widget_name">Attendance</string>
+    <string name="timetable_widget_name">Timetable</string>
+    <string name="attendance_widget_description">Shows your attendance percentage and stats</string>
+    <string name="timetable_widget_description">Shows today\'s class timetable</string>
 </resources>

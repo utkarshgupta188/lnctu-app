@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview drawable shown in the widget picker for the Attendance widget -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Widget background card -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <solid android:color="#1A1A27" />
+        </shape>
+    </item>
+
+    <!-- App icon in top-left -->
+    <item
+        android:left="12dp"
+        android:top="12dp"
+        android:right="0dp"
+        android:bottom="0dp"
+        android:width="24dp"
+        android:height="24dp"
+        android:drawable="@mipmap/ic_launcher" />
+
+    <!-- Coloured accent bar at bottom to hint at the percentage bar -->
+    <item
+        android:left="12dp"
+        android:right="12dp"
+        android:top="80dp"
+        android:bottom="12dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="6dp" />
+            <solid android:color="#6C63FF" />
+        </shape>
+    </item>
+
+</layer-list>

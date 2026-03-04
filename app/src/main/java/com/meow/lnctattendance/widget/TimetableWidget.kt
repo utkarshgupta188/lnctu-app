@@ -1,6 +1,7 @@
 package com.meow.lnctattendance.widget
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -30,13 +31,43 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import com.meow.lnctattendance.data.ApiService
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Calendar
+
+private const val TAG = "TimetableWidget"
+private val KEY_JSON   = stringPreferencesKey("timetable_json")
+private val KEY_STATUS = stringPreferencesKey("status")
+
+private suspend fun fetchTodayPeriods(): String = withContext(Dispatchers.IO) {
+    val conn = URL("https://lnctu.vercel.app/timetable").openConnection() as HttpURLConnection
+    conn.requestMethod = "GET"
+    conn.connectTimeout = 20_000
+    conn.readTimeout    = 25_000
+    conn.setRequestProperty("Accept", "application/json")
+    val code = conn.responseCode
+    val body = conn.inputStream.bufferedReader().use(BufferedReader::readText)
+    conn.disconnect()
+    if (code !in 200..299) throw Exception("HTTP $code")
+
+    val data = JSONObject(body).getJSONObject("data")
+    val todayName = getTodayName()
+    val matchedKey = data.keys().asSequence()
+        .firstOrNull { it.equals(todayName, ignoreCase = true) }
+        ?: return@withContext "[]"
+
+    val arr = data.getJSONArray(matchedKey)
+    Log.d(TAG, "Fetched ${arr.length()} periods for $matchedKey")
+    arr.toString()
+}
 
 class TimetableWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TimetableWidget()
@@ -46,14 +77,37 @@ class TimetableWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        provideContent {
-            val prefs = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()
-            val timetableJson = prefs[stringPreferencesKey("timetable_json")] ?: "[]"
-            val status = prefs[stringPreferencesKey("status")] ?: "Tap refresh to load"
+        try {
+            val periodsJson = fetchTodayPeriods()
+            updateAppWidgetState(context, id) { state ->
+                state[KEY_JSON]   = periodsJson
+                state[KEY_STATUS] = "Updated just now"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Fetch failed: ${e.message}", e)
+            updateAppWidgetState(context, id) { state ->
+                state[KEY_STATUS] = "Tap ↻ to retry"
+            }
+        }
 
-            TimetableWidgetContent(timetableJson, status)
+        provideContent {
+            val prefs  = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()
+            val json   = prefs[KEY_JSON]   ?: "[]"
+            val status = prefs[KEY_STATUS] ?: "Tap ↻ to load"
+            TimetableWidgetContent(json, status)
         }
     }
+}
+
+fun getTodayName(): String = when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
+    Calendar.MONDAY    -> "Monday"
+    Calendar.TUESDAY   -> "Tuesday"
+    Calendar.WEDNESDAY -> "Wednesday"
+    Calendar.THURSDAY  -> "Thursday"
+    Calendar.FRIDAY    -> "Friday"
+    Calendar.SATURDAY  -> "Saturday"
+    Calendar.SUNDAY    -> "Sunday"
+    else               -> "Monday"
 }
 
 @Composable
@@ -68,16 +122,11 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
         emptyList()
     }
 
-    val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-    val todayIdx = when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
-        Calendar.MONDAY -> 0
-        Calendar.TUESDAY -> 1
-        Calendar.WEDNESDAY -> 2
-        Calendar.THURSDAY -> 3
-        Calendar.FRIDAY -> 4
-        else -> 0
-    }
-    val todayName = days[todayIdx]
+    // Fixed row height so 7 rows fit comfortably.
+    // Row height = vertical padding (4+4) + text (~14sp) ≈ 30dp
+    // 7 × 30dp + header ~22dp + spacer 5dp + wrapper padding 16dp = ~210dp
+    // Fits within minHeight="220dp" and targetCellHeight="4"
+    val rowHeight = 30.dp
 
     Column(
         modifier = GlanceModifier
@@ -85,61 +134,90 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
             .appWidgetBackground()
             .background(Color(0xFF1A1A27))
             .cornerRadius(16.dp)
-            .padding(16.dp)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
-        // Header
+        // ── Header ─────────────────────────────────────────
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Today ($todayName)",
-                style = TextStyle(color = androidx.glance.unit.ColorProvider(Color.White), fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                text = "Today  •  ${getTodayName()}",
+                style = TextStyle(
+                    color = androidx.glance.unit.ColorProvider(Color.White),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
                 modifier = GlanceModifier.defaultWeight()
             )
-            // Custom text refresh button
             Text(
                 text = "↻",
-                style = TextStyle(color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)), fontSize = 20.sp, fontWeight = FontWeight.Bold),
-                modifier = GlanceModifier.clickable(actionRunCallback<RefreshTimetableAction>()).padding(start = 8.dp, bottom = 4.dp, top = 4.dp)
+                style = TextStyle(
+                    color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = GlanceModifier
+                    .clickable(actionRunCallback<RefreshTimetableAction>())
+                    .padding(start = 8.dp, top = 2.dp, end = 0.dp, bottom = 2.dp)
             )
         }
-        
-        Spacer(modifier = GlanceModifier.height(12.dp))
+
+        Spacer(modifier = GlanceModifier.height(5.dp))
 
         if (periods.isEmpty()) {
-            Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
                     text = status,
-                    style = TextStyle(color = androidx.glance.unit.ColorProvider(Color.Gray), fontSize = 12.sp)
+                    style = TextStyle(
+                        color = androidx.glance.unit.ColorProvider(Color.Gray),
+                        fontSize = 11.sp
+                    )
                 )
             }
         } else {
-            periods.forEach { (time, subject) ->
-                // Clean the time, e.g. "09:00-09:45" -> "09:00"
-                val startTime = time.split("-").firstOrNull()?.trim() ?: time
-                
-                Row(
-                    modifier = GlanceModifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                        .background(Color(0xFF22223A))
-                        .cornerRadius(8.dp)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = startTime,
-                        style = TextStyle(color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)), fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                        modifier = GlanceModifier.width(44.dp)
-                    )
-                    Spacer(modifier = GlanceModifier.width(12.dp))
-                    Text(
-                        text = subject,
-                        style = TextStyle(color = androidx.glance.unit.ColorProvider(Color.White), fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                        maxLines = 1,
-                        modifier = GlanceModifier.defaultWeight()
-                    )
+            // Nested Column — max 7 rows, no Spacers between them.
+            // Each row has a fixed height so they all fit without overflowing.
+            Column(modifier = GlanceModifier.fillMaxSize()) {
+                periods.take(7).forEach { (time, subject) ->
+                    Row(
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .height(rowHeight)
+                            .background(Color(0xFF22223A))
+                            .cornerRadius(6.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = time.substringBefore("-").trim(),
+                            style = TextStyle(
+                                color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = GlanceModifier.width(38.dp)
+                        )
+                        Spacer(
+                            modifier = GlanceModifier
+                                .width(1.dp)
+                                .height(12.dp)
+                                .background(Color(0xFF6C63FF))
+                        )
+                        Spacer(modifier = GlanceModifier.width(6.dp))
+                        Text(
+                            text = subject,
+                            style = TextStyle(
+                                color = androidx.glance.unit.ColorProvider(Color.White),
+                                fontSize = 11.sp
+                            ),
+                            maxLines = 1,
+                            modifier = GlanceModifier.defaultWeight()
+                        )
+                    }
                 }
             }
         }
@@ -154,41 +232,20 @@ class RefreshTimetableAction : ActionCallback {
     ) {
         try {
             updateAppWidgetState(context, glanceId) { state ->
-                state[stringPreferencesKey("status")] = "Updating..."
+                state[KEY_STATUS] = "Updating..."
             }
             TimetableWidget().update(context, glanceId)
-            
-            val data = ApiService.fetchTimetable()
-            
-            val days = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
-            val todayIdx = when (Calendar.getInstance().get(Calendar.DAY_OF_WEEK)) {
-                Calendar.MONDAY -> 0
-                Calendar.TUESDAY -> 1
-                Calendar.WEDNESDAY -> 2
-                Calendar.THURSDAY -> 3
-                Calendar.FRIDAY -> 4
-                else -> 0
-            }
-            val todayName = days[todayIdx]
-            
-            val todayPeriods = data.days[todayName] ?: emptyList()
-            
-            val jsonArray = JSONArray()
-            todayPeriods.forEach { p ->
-                val obj = JSONObject()
-                obj.put("time", p.time)
-                obj.put("subject", p.subject)
-                jsonArray.put(obj)
-            }
-            
+
+            val periodsJson = fetchTodayPeriods()
             updateAppWidgetState(context, glanceId) { state ->
-                state[stringPreferencesKey("timetable_json")] = jsonArray.toString()
-                state[stringPreferencesKey("status")] = "Updated just now"
+                state[KEY_JSON]   = periodsJson
+                state[KEY_STATUS] = "Updated just now"
             }
             TimetableWidget().update(context, glanceId)
         } catch (e: Exception) {
+            Log.e(TAG, "Refresh failed: ${e.message}", e)
             updateAppWidgetState(context, glanceId) { state ->
-                state[stringPreferencesKey("status")] = "Error updating"
+                state[KEY_STATUS] = "Error – tap ↻ to retry"
             }
             TimetableWidget().update(context, glanceId)
         }

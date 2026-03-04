@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview drawable shown in the widget picker for the Timetable widget -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Widget background card -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <solid android:color="#1A1A27" />
+        </shape>
+    </item>
+
+    <!-- App icon in top-left -->
+    <item
+        android:left="12dp"
+        android:top="12dp"
+        android:right="0dp"
+        android:bottom="0dp"
+        android:width="24dp"
+        android:height="24dp"
+        android:drawable="@mipmap/ic_launcher" />
+
+    <!-- Simulated period row 1 -->
+    <item android:top="48dp" android:bottom="0dp" android:left="12dp" android:right="12dp">
+        <layer-list>
+            <item android:bottom="70dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <solid android:color="#22223A" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Simulated period row 2 -->
+    <item android:top="82dp" android:bottom="0dp" android:left="12dp" android:right="12dp">
+        <layer-list>
+            <item android:bottom="52dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <solid android:color="#22223A" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Simulated period row 3 -->
+    <item android:top="116dp" android:bottom="0dp" android:left="12dp" android:right="12dp">
+        <layer-list>
+            <item android:bottom="34dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="6dp" />
+                    <solid android:color="#22223A" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Purple accent strip on left of row 1 -->
+    <item android:top="52dp" android:bottom="0dp" android:left="12dp" android:right="0dp">
+        <layer-list>
+            <item android:right="200dp" android:bottom="74dp">
+                <shape android:shape="rectangle">
+                    <corners android:radius="3dp" />
+                    <solid android:color="#6C63FF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+</layer-list>
