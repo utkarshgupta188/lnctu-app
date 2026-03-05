@@ -56,17 +56,17 @@ If your API changes shape, adapt the parser in `parseAttendance` (same file as t
 
 ## Screenshots
 
-| Home | Attendance Analysis |
-|-----|-----|
-| ![Home](screenshots/home.png) | ![Analysis](screenshots/analysis.png) |
+| Home                          | Attendance Analysis                   |
+|-------------------------------|---------------------------------------|
+| ![Home](Screenshots/home.png) | ![Analysis](Screenshots/analysis.png) |
 
-| Attendance Risk | Leave Planner |
-|-----|-----|
-| ![Risk](screenshots/risk.png) | ![Leave](screenshots/leave.png) |
+| Attendance Risk               | Leave Planner                   |
+|-------------------------------|---------------------------------|
+| ![Risk](Screenshots/risk.png) | ![Leave](Screenshots/leave.png) |
 
-| Timetable |
-|-----|
-| ![Timetable](screenshots/timetable.png) |
+| Timetable                               |
+|-----------------------------------------|
+| ![Timetable](Screenshots/timetable.png) |
 
 ## Architecture
 Android App → Open-source API → LNCTU portal
