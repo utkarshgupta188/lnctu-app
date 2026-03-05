@@ -1,0 +1,10 @@
+LNCT Attendance App
+Copyright 2026 Utkarsh Gupta
+
+This project is an independent student tool.
+
+This project is not affiliated with LNCT University.
+It retrieves attendance data from the official student portal
+using the user's session authentication.
+
+The source code for the API and Android application is open source.
