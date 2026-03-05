@@ -54,6 +54,20 @@ If your API changes shape, adapt the parser in `parseAttendance` (same file as t
 - `usesCleartextTraffic` is enabled for development convenience. If your API is HTTPS-only, you can set it to `false`.
 - No credentials are stored; they are only used to call the endpoint.
 
+## Screenshots
+
+| Home | Attendance Analysis |
+|-----|-----|
+| ![Home](screenshots/home.png) | ![Analysis](screenshots/analysis.png) |
+
+| Attendance Risk | Leave Planner |
+|-----|-----|
+| ![Risk](screenshots/risk.png) | ![Leave](screenshots/leave.png) |
+
+| Timetable |
+|-----|
+| ![Timetable](screenshots/timetable.png) |
+
 ## Architecture
 Android App → Open-source API → LNCTU portal
 
