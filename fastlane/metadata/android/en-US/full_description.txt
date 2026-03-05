@@ -1,0 +1,11 @@
+LNCT Attendance is an open-source Android application
+that fetches attendance data from the LNCTU portal.
+
+Features:
+• Attendance overview
+• Subject analysis
+• Attendance risk prediction
+• Leave planner
+• Timetable viewer
+
+This project is not affiliated with LNCT University.
