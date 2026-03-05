@@ -2,7 +2,7 @@
 
 A tiny Compose Android app that fetches and shows your attendance using your own API endpoint.
 
-Default endpoint used:
+Default endpoint used: 
 
 ```
 https://lnctu.vercel.app/attendance?username=&password=
