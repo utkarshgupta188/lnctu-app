@@ -69,14 +69,15 @@ object ApiService {
         assertSuccess(root)
         val d = root.getJSONObject("data")
         return AttendanceData(
-            studentName = d.optString("student_name", "").takeIf { it.isNotBlank() },
-            totalClasses = d.optInt("total_classes"),
-            present = d.optInt("present"),
-            absent = d.optInt("absent"),
-            percentage = d.optDouble("percentage"),
+            studentName     = d.optString("student_name", "").takeIf { it.isNotBlank() },
+            totalClasses    = d.optInt("total_classes"),
+            present         = d.optInt("present"),
+            absent          = d.optInt("absent"),
+            percentage      = d.optDouble("percentage"),
             overallPercentage = d.optDouble("overall_percentage", d.optDouble("percentage")),
             attendedClasses = d.optInt("attended_classes", d.optInt("present")),
-            subjects = parseSubjectArray(d.optJSONArray("subjects")),
+            subjects        = parseSubjectArray(d.optJSONArray("subjects")),
+            datewise        = parseDatewiseArray(d.optJSONArray("datewise")),
         )
     }
 
@@ -86,17 +87,17 @@ object ApiService {
         val sumJson = d.getJSONObject("summary")
         return AnalysisData(
             summary = AnalysisSummary(
-                totalSubjects = sumJson.optInt("total_subjects"),
-                atRiskCount = sumJson.optInt("at_risk_count"),
-                safeCount = sumJson.optInt("safe_count"),
-                overallPercentage = sumJson.optDouble("overall_percentage"),
-                overallStatus = sumJson.optString("overall_status"),
-                overallMessage = sumJson.optString("overall_message"),
+                totalSubjects      = sumJson.optInt("total_subjects"),
+                atRiskCount        = sumJson.optInt("at_risk_count"),
+                safeCount          = sumJson.optInt("safe_count"),
+                overallPercentage  = sumJson.optDouble("overall_percentage"),
+                overallStatus      = sumJson.optString("overall_status"),
+                overallMessage     = sumJson.optString("overall_message"),
             ),
             atRiskSubjects = parseSubjectArray(d.optJSONArray("at_risk_subjects")),
-            safeSubjects = parseSubjectArray(d.optJSONArray("safe_subjects")),
-            dayAnalysis = parseDayAnalysis(d.optJSONObject("day_analysis")),
-            predictions = parsePredictions(d.optJSONArray("predictions")),
+            safeSubjects   = parseSubjectArray(d.optJSONArray("safe_subjects")),
+            dayAnalysis    = parseDayAnalysis(d.optJSONObject("day_analysis")),
+            predictions    = parsePredictions(d.optJSONArray("predictions")),
         )
     }
 
@@ -104,11 +105,11 @@ object ApiService {
         assertSuccess(root)
         val d = root.getJSONObject("data")
         return RiskEngineData(
-            threshold = d.optDouble("threshold", 75.0),
-            overallRiskStatus = d.optString("overall_risk_status"),
-            atRiskSubjectsCount = d.optInt("at_risk_subjects_count"),
-            criticalAlert = d.optBoolean("critical_alert"),
-            subjectRisks = parseSubjectRisks(d.optJSONArray("subject_risks")),
+            threshold            = d.optDouble("threshold", 75.0),
+            overallRiskStatus    = d.optString("overall_risk_status"),
+            atRiskSubjectsCount  = d.optInt("at_risk_subjects_count"),
+            criticalAlert        = d.optBoolean("critical_alert"),
+            subjectRisks         = parseSubjectRisks(d.optJSONArray("subject_risks")),
         )
     }
 
@@ -117,17 +118,17 @@ object ApiService {
         val d = root.getJSONObject("data")
         val oa = d.optJSONObject("overall_attendance")
         return LeaveSimulatorData(
-            simulatedDay = d.optString("simulated_day"),
-            totalClassesOnDay = d.optInt("total_classes_on_day"),
-            affectedSubjectsCount = d.optInt("affected_subjects_count"),
-            recommendation = d.optString("recommendation"),
-            advice = d.optString("advice"),
-            totalImpactScore = d.optInt("total_impact_score"),
-            subjectSimulations = parseSubjectSimulations(d.optJSONArray("subject_simulations")),
-            overallAttendance = OverallAttendanceChange(
-                current = oa?.optDouble("current") ?: 0.0,
+            simulatedDay           = d.optString("simulated_day"),
+            totalClassesOnDay      = d.optInt("total_classes_on_day"),
+            affectedSubjectsCount  = d.optInt("affected_subjects_count"),
+            recommendation         = d.optString("recommendation"),
+            advice                 = d.optString("advice"),
+            totalImpactScore       = d.optInt("total_impact_score"),
+            subjectSimulations     = parseSubjectSimulations(d.optJSONArray("subject_simulations")),
+            overallAttendance      = OverallAttendanceChange(
+                current   = oa?.optDouble("current") ?: 0.0,
                 projected = oa?.optDouble("projected") ?: 0.0,
-                drop = oa?.optDouble("drop") ?: 0.0,
+                drop      = oa?.optDouble("drop") ?: 0.0,
             ),
         )
     }
@@ -138,11 +139,11 @@ object ApiService {
         val ww = d.optJSONObject("whole_week_leave")
         return WeekSimulatorData(
             currentOverallPercentage = d.optDouble("current_overall_percentage"),
-            weekSimulation = parseDaySimulations(d.optJSONArray("week_simulation")),
-            wholeWeekLeave = WholeWeekLeave(
-                totalAbsences = ww?.optInt("total_absences") ?: 0,
-                projectedOverallPercentage = ww?.optDouble("projected_overall_percentage") ?: 0.0,
-                overallDrop = ww?.optDouble("overall_drop") ?: 0.0,
+            weekSimulation           = parseDaySimulations(d.optJSONArray("week_simulation")),
+            wholeWeekLeave           = WholeWeekLeave(
+                totalAbsences                = ww?.optInt("total_absences") ?: 0,
+                projectedOverallPercentage   = ww?.optDouble("projected_overall_percentage") ?: 0.0,
+                overallDrop                  = ww?.optDouble("overall_drop") ?: 0.0,
             ),
         )
     }
@@ -175,11 +176,24 @@ object ApiService {
         return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             Subject(
-                name = o.optString("name"),
-                total = o.optInt("total"),
-                present = o.optInt("present"),
-                absent = o.optInt("absent"),
+                name       = o.optString("name"),
+                total      = o.optInt("total"),
+                present    = o.optInt("present"),
+                absent     = o.optInt("absent"),
                 percentage = o.optDouble("percentage"),
+            )
+        }
+    }
+
+    private fun parseDatewiseArray(arr: JSONArray?): List<DatewiseRecord> {
+        arr ?: return emptyList()
+        return (0 until arr.length()).mapNotNull { i ->
+            val o = arr.optJSONObject(i) ?: return@mapNotNull null
+            DatewiseRecord(
+                date    = o.optString("date"),
+                lecture = o.optString("lecture"),
+                subject = o.optString("subject"),
+                status  = o.optString("status"),
             )
         }
     }
@@ -190,13 +204,15 @@ object ApiService {
         for (day in obj.keys()) {
             val d = obj.getJSONObject(day)
             val subjectsArr = d.optJSONArray("subjects")
-            val subjects = if (subjectsArr != null) (0 until subjectsArr.length()).map { subjectsArr.getString(it) } else emptyList()
+            val subjects = if (subjectsArr != null)
+                (0 until subjectsArr.length()).map { subjectsArr.getString(it) }
+            else emptyList()
             map[day] = DayAnalysis(
-                subjects = subjects,
-                atRiskCount = d.optInt("at_risk_count"),
-                safeCount = d.optInt("safe_count"),
-                totalClasses = d.optInt("total_classes"),
-                leaveRecommendation = d.optString("leave_recommendation"),
+                subjects             = subjects,
+                atRiskCount          = d.optInt("at_risk_count"),
+                safeCount            = d.optInt("safe_count"),
+                totalClasses         = d.optInt("total_classes"),
+                leaveRecommendation  = d.optString("leave_recommendation"),
             )
         }
         return map
@@ -207,13 +223,13 @@ object ApiService {
         return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             SubjectPrediction(
-                subject = o.optString("subject"),
-                currentPercentage = o.optDouble("current_percentage"),
-                status = o.optString("status"),
-                canMiss = if (o.has("can_miss")) o.optInt("can_miss") else null,
-                classesNeeded = if (o.has("classes_needed")) o.optInt("classes_needed") else null,
-                daysToRecover = if (o.has("days_to_recover")) o.optInt("days_to_recover") else null,
-                message = o.optString("message"),
+                subject            = o.optString("subject"),
+                currentPercentage  = o.optDouble("current_percentage"),
+                status             = o.optString("status"),
+                canMiss            = if (o.has("can_miss")) o.optInt("can_miss") else null,
+                classesNeeded      = if (o.has("classes_needed")) o.optInt("classes_needed") else null,
+                daysToRecover      = if (o.has("days_to_recover")) o.optInt("days_to_recover") else null,
+                message            = o.optString("message"),
             )
         }
     }
@@ -223,17 +239,17 @@ object ApiService {
         return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             SubjectRisk(
-                subject = o.optString("subject"),
-                total = o.optInt("total"),
-                present = o.optInt("present"),
-                absent = o.optInt("absent"),
-                percentage = o.optDouble("percentage"),
-                riskLevel = o.optString("risk_level"),
-                absentsAllowedBeforeThreshold = o.optInt("absents_allowed_before_threshold"),
-                alreadyBelowThreshold = o.optBoolean("already_below_threshold"),
-                consecutivePresentsNeeded = o.optInt("consecutive_presents_needed"),
-                estimatedDaysToRecover = o.optInt("estimated_days_to_recover"),
-                projectedPercentageIfMissOne = o.optDouble("projected_percentage_if_miss_one"),
+                subject                        = o.optString("subject"),
+                total                          = o.optInt("total"),
+                present                        = o.optInt("present"),
+                absent                         = o.optInt("absent"),
+                percentage                     = o.optDouble("percentage"),
+                riskLevel                      = o.optString("risk_level"),
+                absentsAllowedBeforeThreshold  = o.optInt("absents_allowed_before_threshold"),
+                alreadyBelowThreshold          = o.optBoolean("already_below_threshold"),
+                consecutivePresentsNeeded      = o.optInt("consecutive_presents_needed"),
+                estimatedDaysToRecover         = o.optInt("estimated_days_to_recover"),
+                projectedPercentageIfMissOne   = o.optDouble("projected_percentage_if_miss_one"),
             )
         }
     }
@@ -243,13 +259,13 @@ object ApiService {
         return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             SubjectSimulation(
-                subject = o.optString("subject"),
-                currentPercentage = o.optDouble("current_percentage"),
-                classesOnThisDay = o.optInt("classes_on_this_day"),
+                subject            = o.optString("subject"),
+                currentPercentage  = o.optDouble("current_percentage"),
+                classesOnThisDay   = o.optInt("classes_on_this_day"),
                 projectedPercentage = o.optDouble("projected_percentage"),
-                percentageDrop = o.optDouble("percentage_drop"),
-                impactLevel = o.optString("impact_level"),
-                willFallBelow75 = o.optBoolean("will_fall_below_75"),
+                percentageDrop     = o.optDouble("percentage_drop"),
+                impactLevel        = o.optString("impact_level"),
+                willFallBelow75    = o.optBoolean("will_fall_below_75"),
                 statusAfterAbsence = o.optString("status_after_absence"),
             )
         }
@@ -260,15 +276,15 @@ object ApiService {
         return (0 until arr.length()).mapNotNull { i ->
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             DaySimulation(
-                day = o.optString("day"),
-                totalClassUnits = o.optInt("total_class_units"),
-                affectedSubjectsCount = o.optInt("affected_subjects_count"),
-                recommendation = o.optString("recommendation"),
-                advice = o.optString("advice"),
-                totalImpactScore = o.optInt("total_impact_score"),
-                projectedOverallPercentage = o.optDouble("projected_overall_percentage"),
-                overallDrop = o.optDouble("overall_drop"),
-                subjectSimulations = parseSubjectSimulations(o.optJSONArray("subject_simulations")),
+                day                          = o.optString("day"),
+                totalClassUnits              = o.optInt("total_class_units"),
+                affectedSubjectsCount        = o.optInt("affected_subjects_count"),
+                recommendation               = o.optString("recommendation"),
+                advice                       = o.optString("advice"),
+                totalImpactScore             = o.optInt("total_impact_score"),
+                projectedOverallPercentage   = o.optDouble("projected_overall_percentage"),
+                overallDrop                  = o.optDouble("overall_drop"),
+                subjectSimulations           = parseSubjectSimulations(o.optJSONArray("subject_simulations")),
             )
         }
     }

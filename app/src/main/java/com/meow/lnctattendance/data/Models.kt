@@ -13,6 +13,7 @@ data class AttendanceData(
     val overallPercentage: Double,
     val attendedClasses: Int,
     val subjects: List<Subject> = emptyList(),
+    val datewise: List<DatewiseRecord> = emptyList(),
 )
 
 data class Subject(
@@ -21,6 +22,13 @@ data class Subject(
     val present: Int,
     val absent: Int,
     val percentage: Double,
+)
+
+data class DatewiseRecord(
+    val date: String,
+    val lecture: String,
+    val subject: String,
+    val status: String,
 )
 
 // ──────────────────────────────────────────────
