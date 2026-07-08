@@ -12,8 +12,7 @@
     android:targetCellWidth="3"
     android:targetCellHeight="2"
 
-    android:maxResizeWidth="400dp"
-    android:maxResizeHeight="300dp"
+
 
     android:updatePeriodMillis="7200000"
 

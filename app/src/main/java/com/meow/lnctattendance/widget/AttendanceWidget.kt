@@ -98,6 +98,11 @@ private val WidgetColors = ColorProviders(
     light = LightWidgetColorScheme,
     dark = DarkWidgetColorScheme
 )
+private val TranslucentSurface = androidx.glance.color.ColorProvider(
+    day = Color.Black.copy(alpha = 0.06f),
+    night = Color.White.copy(alpha = 0.12f)
+)
+
 private val KEY_LAST_FETCH = longPreferencesKey("last_fetch_ms")
 
 private val SIZE_SMALL  = DpSize(57.dp,  57.dp)
@@ -129,9 +134,7 @@ class AttendanceWidgetReceiver : GlanceAppWidgetReceiver() {
 class AttendanceWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition
 
-    override val sizeMode = SizeMode.Responsive(
-        setOf(SIZE_SMALL, SIZE_MEDIUM, SIZE_LARGE)
-    )
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // Read current state to check last fetch time
@@ -287,7 +290,7 @@ fun AttendanceWidgetLarge(
             .appWidgetBackground()
             .background(GlanceTheme.colors.background)
             .cornerRadius(28.dp) // Premium organic rounded corners
-            .padding(16.dp),
+            .padding(18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -301,7 +304,7 @@ fun AttendanceWidgetLarge(
                     text = "LNCT Attendance",
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
-                        fontSize = 13.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
@@ -310,7 +313,7 @@ fun AttendanceWidgetLarge(
                         text = status,
                         style = TextStyle(
                             color = GlanceTheme.colors.onSurfaceVariant,
-                            fontSize = 9.sp
+                            fontSize = 11.sp
                         ),
                         maxLines = 1
                     )
@@ -321,26 +324,26 @@ fun AttendanceWidgetLarge(
                 modifier = GlanceModifier
                     .clickable(actionRunCallback<RefreshAttendanceAction>())
                     .background(GlanceTheme.colors.primaryContainer)
-                    .cornerRadius(12.dp)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .cornerRadius(14.dp)
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Sync",
                     style = TextStyle(
                         color = GlanceTheme.colors.onPrimaryContainer,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
             }
         }
 
-        Spacer(modifier = GlanceModifier.height(10.dp))
+        Spacer(modifier = GlanceModifier.height(12.dp))
 
-        // Large stats middle row
+        // Large stats middle row - fills available vertical space
         Row(
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier.fillMaxWidth().defaultWeight(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Main Percentage container
@@ -352,15 +355,16 @@ fun AttendanceWidgetLarge(
                     text = "${"%.1f".format(percentage)}%",
                     style = TextStyle(
                         color = androidx.glance.unit.ColorProvider(pctColor),
-                        fontSize = 32.sp,
+                        fontSize = 42.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
+                Spacer(modifier = GlanceModifier.height(2.dp))
                 Text(
                     text = if (percentage >= 75) "ON TRACK" else "ATTEND CLASS",
                     style = TextStyle(
                         color = androidx.glance.unit.ColorProvider(pctColor),
-                        fontSize = 9.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
@@ -371,9 +375,9 @@ fun AttendanceWidgetLarge(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 VerticalStatPill("P", present.toString(), Color(0xFF4CAF50))
-                Spacer(modifier = GlanceModifier.width(6.dp))
+                Spacer(modifier = GlanceModifier.width(8.dp))
                 VerticalStatPill("A", absent.toString(), Color(0xFFE53935))
-                Spacer(modifier = GlanceModifier.width(6.dp))
+                Spacer(modifier = GlanceModifier.width(8.dp))
                 VerticalStatPill("T", total.toString(), GlanceTheme.colors.primary)
             }
         }
@@ -389,11 +393,11 @@ fun VerticalStatPill(label: String, value: String, color: Color) {
 fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glance.unit.ColorProvider) {
     Column(
         modifier = GlanceModifier
-            .width(36.dp)
-            .height(58.dp)
-            .background(GlanceTheme.colors.surface)
-            .cornerRadius(18.dp)
-            .padding(vertical = 6.dp),
+            .width(48.dp) // Wider capsules to fit larger text
+            .height(78.dp) // Taller capsules
+            .background(TranslucentSurface) // High-contrast dynamic translucent look
+            .cornerRadius(24.dp)
+            .padding(vertical = 10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -401,16 +405,16 @@ fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glanc
             text = value,
             style = TextStyle(
                 color = colorProvider,
-                fontSize = 14.sp,
+                fontSize = 22.sp, // Bold, massive, highly clear numbers
                 fontWeight = FontWeight.Bold
             )
         )
-        Spacer(modifier = GlanceModifier.height(2.dp))
+        Spacer(modifier = GlanceModifier.height(4.dp))
         Text(
             text = label,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
-                fontSize = 9.sp,
+                fontSize = 14.sp, // Larger and clearer labels
                 fontWeight = FontWeight.Bold
             )
         )

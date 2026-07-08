@@ -12,6 +12,7 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.appWidgetBackground
@@ -89,6 +90,10 @@ private val WidgetColors = ColorProviders(
     dark = DarkWidgetColorScheme
 )
 
+private val TranslucentSurface = androidx.glance.color.ColorProvider(
+    day = Color.Black.copy(alpha = 0.06f),
+    night = Color.White.copy(alpha = 0.12f)
+)
 private suspend fun fetchTodayPeriods(): String = withContext(Dispatchers.IO) {
     val conn = URL("https://lnctu.vercel.app/timetable").openConnection() as HttpURLConnection
     conn.requestMethod = "GET"
@@ -117,6 +122,7 @@ class TimetableWidgetReceiver : GlanceAppWidgetReceiver() {
 
 class TimetableWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition
+    override val sizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         try {
@@ -249,7 +255,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                         modifier = GlanceModifier
                             .fillMaxWidth()
                             .height(rowHeight)
-                            .background(GlanceTheme.colors.surface)
+                            .background(TranslucentSurface) // High-contrast dynamic translucent look
                             .cornerRadius(12.dp) // Capsule style card
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
