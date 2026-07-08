@@ -44,43 +44,49 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Calendar
 import androidx.glance.material3.ColorProviders
+import com.meow.lnctattendance.prefs.PreferencesManager
+import kotlinx.coroutines.flow.firstOrNull
 import com.meow.lnctattendance.ui.theme.*
 
 private const val TAG = "TimetableWidget"
 private val KEY_JSON   = stringPreferencesKey("timetable_json")
 private val KEY_STATUS = stringPreferencesKey("status")
 
+private val LightWidgetColorScheme = androidx.compose.material3.lightColorScheme(
+    primary              = Primary,
+    onPrimary            = Color.White,
+    primaryContainer     = Color(0xFFF5DDBE),
+    onPrimaryContainer   = Color(0xFF2C1A0E),
+    secondary            = Secondary,
+    onSecondary          = Color.White,
+    background           = LightBackground,
+    surface              = LightSurface,
+    surfaceVariant       = LightCard,
+    onBackground         = Color(0xFF211B15),
+    onSurface            = Color(0xFF211B15),
+    onSurfaceVariant     = Color(0xFF534639),
+    outline              = Color(0xFF857463),
+)
+
+private val DarkWidgetColorScheme = androidx.compose.material3.darkColorScheme(
+    primary              = Color(0xFFE3BD9A),
+    onPrimary            = Color(0xFF4A2B14),
+    primaryContainer     = Color(0xFF6F4E37),
+    onPrimaryContainer   = Color(0xFFFBEFE3),
+    secondary            = Color(0xFFD6B599),
+    onSecondary          = Color(0xFF4A2B14),
+    background           = DarkBackground,
+    surface              = DarkSurface,
+    surfaceVariant       = DarkCard,
+    onBackground         = Color(0xFFEDE0D4),
+    onSurface            = Color(0xFFEDE0D4),
+    onSurfaceVariant     = Color(0xFFCFBFB0),
+    outline              = Color(0xFF9C8A7B),
+)
+
 private val WidgetColors = ColorProviders(
-    light = androidx.compose.material3.lightColorScheme(
-        primary              = Primary,
-        onPrimary            = Color.White,
-        primaryContainer     = Color(0xFFF5DDBE),
-        onPrimaryContainer   = Color(0xFF2C1A0E),
-        secondary            = Secondary,
-        onSecondary          = Color.White,
-        background           = LightBackground,
-        surface              = LightSurface,
-        surfaceVariant       = LightCard,
-        onBackground         = Color(0xFF211B15),
-        onSurface            = Color(0xFF211B15),
-        onSurfaceVariant     = Color(0xFF534639),
-        outline              = Color(0xFF857463),
-    ),
-    dark = androidx.compose.material3.darkColorScheme(
-        primary              = Color(0xFFE3BD9A),
-        onPrimary            = Color(0xFF4A2B14),
-        primaryContainer     = Color(0xFF6F4E37),
-        onPrimaryContainer   = Color(0xFFFBEFE3),
-        secondary            = Color(0xFFD6B599),
-        onSecondary          = Color(0xFF4A2B14),
-        background           = DarkBackground,
-        surface              = DarkSurface,
-        surfaceVariant       = DarkCard,
-        onBackground         = Color(0xFFEDE0D4),
-        onSurface            = Color(0xFFEDE0D4),
-        onSurfaceVariant     = Color(0xFFCFBFB0),
-        outline              = Color(0xFF9C8A7B),
-    )
+    light = LightWidgetColorScheme,
+    dark = DarkWidgetColorScheme
 )
 
 private suspend fun fetchTodayPeriods(): String = withContext(Dispatchers.IO) {
@@ -126,8 +132,15 @@ class TimetableWidget : GlanceAppWidget() {
             }
         }
 
+        val prefsManager = PreferencesManager(context)
+        val appDarkMode = prefsManager.darkMode.firstOrNull()
+        val isSystemDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val useDarkMode = appDarkMode ?: isSystemDark
+
         provideContent {
-            GlanceTheme(colors = WidgetColors) {
+            val scheme = if (useDarkMode) DarkWidgetColorScheme else LightWidgetColorScheme
+            val forcedColors = ColorProviders(light = scheme, dark = scheme)
+            GlanceTheme(colors = forcedColors) {
                 val prefs  = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()
                 val json   = prefs[KEY_JSON]   ?: "[]"
                 val status = prefs[KEY_STATUS] ?: "Tap ↻ to load"
@@ -171,12 +184,12 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
             .fillMaxSize()
             .appWidgetBackground()
             .background(GlanceTheme.colors.background)
-            .cornerRadius(16.dp)
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .cornerRadius(28.dp) // Large M3 corners
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
         // ── Header ─────────────────────────────────────────
         Row(
-            modifier = GlanceModifier.fillMaxWidth(),
+            modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -188,20 +201,27 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                 ),
                 modifier = GlanceModifier.defaultWeight()
             )
-            Text(
-                text = "↻",
-                style = TextStyle(
-                    color = GlanceTheme.colors.primary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                ),
+            // Styled refresh icon as a small pill button
+            Box(
                 modifier = GlanceModifier
                     .clickable(actionRunCallback<RefreshTimetableAction>())
-                    .padding(start = 8.dp, top = 2.dp, end = 0.dp, bottom = 2.dp)
-            )
+                    .background(GlanceTheme.colors.primaryContainer)
+                    .cornerRadius(8.dp)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Sync",
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onPrimaryContainer,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
         }
 
-        Spacer(modifier = GlanceModifier.height(5.dp))
+        Spacer(modifier = GlanceModifier.height(8.dp))
 
         if (periods.isEmpty()) {
             Box(
@@ -217,35 +237,41 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                 )
             }
         } else {
-            // Nested Column — max 7 rows, no Spacers between them.
-            // Each row has a fixed height so they all fit without overflowing.
-            Column(modifier = GlanceModifier.fillMaxSize()) {
-                periods.take(7).forEach { (time, subject) ->
+            // Nested Column — max 7 rows
+            Column(
+                modifier = GlanceModifier.fillMaxSize()
+            ) {
+                periods.take(7).forEachIndexed { index, (time, subject) ->
+                    if (index > 0) {
+                        Spacer(modifier = GlanceModifier.height(4.dp))
+                    }
                     Row(
                         modifier = GlanceModifier
                             .fillMaxWidth()
                             .height(rowHeight)
                             .background(GlanceTheme.colors.surface)
-                            .cornerRadius(6.dp)
+                            .cornerRadius(12.dp) // Capsule style card
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = time.substringBefore("-").trim(),
-                            style = TextStyle(
-                                color = GlanceTheme.colors.primary,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            modifier = GlanceModifier.width(38.dp)
-                        )
-                        Spacer(
+                        // Time Pill Badge
+                        Box(
                             modifier = GlanceModifier
-                                .width(1.dp)
-                                .height(12.dp)
-                                .background(GlanceTheme.colors.outline)
-                        )
-                        Spacer(modifier = GlanceModifier.width(6.dp))
+                                .background(GlanceTheme.colors.primaryContainer)
+                                .cornerRadius(8.dp)
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = time.substringBefore("-").trim(),
+                                style = TextStyle(
+                                    color = GlanceTheme.colors.onPrimaryContainer,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                        Spacer(modifier = GlanceModifier.width(8.dp))
                         Text(
                             text = subject,
                             style = TextStyle(

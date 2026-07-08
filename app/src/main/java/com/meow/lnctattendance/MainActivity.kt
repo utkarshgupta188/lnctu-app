@@ -50,6 +50,7 @@ import com.meow.lnctattendance.ui.components.ErrorScreen
 import com.meow.lnctattendance.ui.components.LoadingScreen
 import com.meow.lnctattendance.ui.screens.*
 import com.meow.lnctattendance.ui.theme.*
+import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -83,6 +84,7 @@ private fun AttendanceApp(
     isDark: Boolean,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val authState       by prefs.authState.collectAsStateWithLifecycle(initialValue = AuthState.Loading)
     val credentials     by vm.credentials.collectAsStateWithLifecycle()
@@ -116,7 +118,15 @@ private fun AttendanceApp(
     }
 
     val onToggleDark: () -> Unit = {
-        scope.launch { prefs.setDarkMode(!isDark) }
+        scope.launch { 
+            prefs.setDarkMode(!isDark)
+            try {
+                com.meow.lnctattendance.widget.AttendanceWidget().updateAll(context)
+                com.meow.lnctattendance.widget.TimetableWidget().updateAll(context)
+            } catch (e: Exception) {
+                // Ignore if widgets aren't currently added on launcher
+            }
+        }
     }
 
     if (authState is AuthState.Loading && !initialLoadAttempted) return

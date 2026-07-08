@@ -25,6 +25,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.Alignment
+import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -61,37 +62,41 @@ private val KEY_TOTAL      = intPreferencesKey("total")
 private val KEY_PERCENTAGE = doublePreferencesKey("percentage")
 private val KEY_STATUS     = stringPreferencesKey("status")
 
+private val LightWidgetColorScheme = androidx.compose.material3.lightColorScheme(
+    primary              = Primary,
+    onPrimary            = Color.White,
+    primaryContainer     = Color(0xFFF5DDBE),
+    onPrimaryContainer   = Color(0xFF2C1A0E),
+    secondary            = Secondary,
+    onSecondary          = Color.White,
+    background           = LightBackground,
+    surface              = LightSurface,
+    surfaceVariant       = LightCard,
+    onBackground         = Color(0xFF211B15),
+    onSurface            = Color(0xFF211B15),
+    onSurfaceVariant     = Color(0xFF534639),
+    outline              = Color(0xFF857463),
+)
+
+private val DarkWidgetColorScheme = androidx.compose.material3.darkColorScheme(
+    primary              = Color(0xFFE3BD9A),
+    onPrimary            = Color(0xFF4A2B14),
+    primaryContainer     = Color(0xFF6F4E37),
+    onPrimaryContainer   = Color(0xFFFBEFE3),
+    secondary            = Color(0xFFD6B599),
+    onSecondary          = Color(0xFF4A2B14),
+    background           = DarkBackground,
+    surface              = DarkSurface,
+    surfaceVariant       = DarkCard,
+    onBackground         = Color(0xFFEDE0D4),
+    onSurface            = Color(0xFFEDE0D4),
+    onSurfaceVariant     = Color(0xFFCFBFB0),
+    outline              = Color(0xFF9C8A7B),
+)
+
 private val WidgetColors = ColorProviders(
-    light = androidx.compose.material3.lightColorScheme(
-        primary              = Primary,
-        onPrimary            = Color.White,
-        primaryContainer     = Color(0xFFF5DDBE),
-        onPrimaryContainer   = Color(0xFF2C1A0E),
-        secondary            = Secondary,
-        onSecondary          = Color.White,
-        background           = LightBackground,
-        surface              = LightSurface,
-        surfaceVariant       = LightCard,
-        onBackground         = Color(0xFF211B15),
-        onSurface            = Color(0xFF211B15),
-        onSurfaceVariant     = Color(0xFF534639),
-        outline              = Color(0xFF857463),
-    ),
-    dark = androidx.compose.material3.darkColorScheme(
-        primary              = Color(0xFFE3BD9A),
-        onPrimary            = Color(0xFF4A2B14),
-        primaryContainer     = Color(0xFF6F4E37),
-        onPrimaryContainer   = Color(0xFFFBEFE3),
-        secondary            = Color(0xFFD6B599),
-        onSecondary          = Color(0xFF4A2B14),
-        background           = DarkBackground,
-        surface              = DarkSurface,
-        surfaceVariant       = DarkCard,
-        onBackground         = Color(0xFFEDE0D4),
-        onSurface            = Color(0xFFEDE0D4),
-        onSurfaceVariant     = Color(0xFFCFBFB0),
-        outline              = Color(0xFF9C8A7B),
-    )
+    light = LightWidgetColorScheme,
+    dark = DarkWidgetColorScheme
 )
 private val KEY_LAST_FETCH = longPreferencesKey("last_fetch_ms")
 
@@ -146,8 +151,15 @@ class AttendanceWidget : GlanceAppWidget() {
                        "age=${(now - lastFetchMs) / 60000}min")
         }
 
+        val prefsManager = PreferencesManager(context)
+        val appDarkMode = prefsManager.darkMode.firstOrNull()
+        val isSystemDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val useDarkMode = appDarkMode ?: isSystemDark
+
         provideContent {
-            GlanceTheme(colors = WidgetColors) {
+            val scheme = if (useDarkMode) DarkWidgetColorScheme else LightWidgetColorScheme
+            val forcedColors = ColorProviders(light = scheme, dark = scheme)
+            GlanceTheme(colors = forcedColors) {
                 val prefs      = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()
                 val present    = prefs[KEY_PRESENT]    ?: 0
                 val absent     = prefs[KEY_ABSENT]     ?: 0
@@ -274,94 +286,134 @@ fun AttendanceWidgetLarge(
             .fillMaxSize()
             .appWidgetBackground()
             .background(GlanceTheme.colors.background)
-            .cornerRadius(16.dp)
+            .cornerRadius(28.dp) // Premium organic rounded corners
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Header
+        // Header Row
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "LNCT Attendance",
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = GlanceModifier.defaultWeight()
-            )
-            Text(
-                text = "↻",
-                style = TextStyle(
-                    color = GlanceTheme.colors.primary,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                ),
+            Column(modifier = GlanceModifier.defaultWeight()) {
+                Text(
+                    text = "LNCT Attendance",
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                if (status.isNotEmpty()) {
+                    Text(
+                        text = status,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 9.sp
+                        ),
+                        maxLines = 1
+                    )
+                }
+            }
+            // Styled refresh icon as a small pill button
+            Box(
                 modifier = GlanceModifier
                     .clickable(actionRunCallback<RefreshAttendanceAction>())
-                    .padding(start = 8.dp, top = 4.dp, end = 0.dp, bottom = 4.dp)
-            )
+                    .background(GlanceTheme.colors.primaryContainer)
+                    .cornerRadius(12.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Sync",
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onPrimaryContainer,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
         }
 
         Spacer(modifier = GlanceModifier.height(10.dp))
 
-        // Big percentage
-        Text(
-            text = "${"%.1f".format(percentage)}%",
-            style = TextStyle(
-                color = androidx.glance.unit.ColorProvider(pctColor),
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold
-            )
-        )
-
-        Spacer(modifier = GlanceModifier.height(14.dp))
-
-        // Stats row
+        // Large stats middle row
         Row(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .background(GlanceTheme.colors.surface)
-                .cornerRadius(12.dp)
-                .padding(12.dp),
+            modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CompactStat("Present", present.toString(), Color(0xFF4CAF50), GlanceModifier.defaultWeight())
-            CompactStat("Absent",  absent.toString(),  Color(0xFFE53935), GlanceModifier.defaultWeight())
-            CompactStat("Total",   total.toString(),   GlanceTheme.colors.primary, GlanceModifier.defaultWeight())
-        }
+            // Main Percentage container
+            Column(
+                modifier = GlanceModifier.defaultWeight(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${"%.1f".format(percentage)}%",
+                    style = TextStyle(
+                        color = androidx.glance.unit.ColorProvider(pctColor),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Text(
+                    text = if (percentage >= 75) "ON TRACK" else "ATTEND CLASS",
+                    style = TextStyle(
+                        color = androidx.glance.unit.ColorProvider(pctColor),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            }
 
-        if (status.isNotEmpty()) {
-            Spacer(modifier = GlanceModifier.height(8.dp))
-            Text(
-                text = status,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSurfaceVariant,
-                    fontSize = 11.sp
-                ),
-                maxLines = 1
-            )
+            // Stats vertical capsules
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                VerticalStatPill("P", present.toString(), Color(0xFF4CAF50))
+                Spacer(modifier = GlanceModifier.width(6.dp))
+                VerticalStatPill("A", absent.toString(), Color(0xFFE53935))
+                Spacer(modifier = GlanceModifier.width(6.dp))
+                VerticalStatPill("T", total.toString(), GlanceTheme.colors.primary)
+            }
         }
     }
 }
 
 @Composable
-fun CompactStat(label: String, value: String, color: Color, modifier: GlanceModifier) {
-    CompactStat(label, value, androidx.glance.unit.ColorProvider(color), modifier)
+fun VerticalStatPill(label: String, value: String, color: Color) {
+    VerticalStatPill(label, value, androidx.glance.unit.ColorProvider(color))
 }
 
 @Composable
-fun CompactStat(label: String, value: String, colorProvider: androidx.glance.unit.ColorProvider, modifier: GlanceModifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, style = TextStyle(
-            color = colorProvider,
-            fontSize = 16.sp, fontWeight = FontWeight.Bold))
-        Text(text = label, style = TextStyle(
-            color = GlanceTheme.colors.onSurfaceVariant,
-            fontSize = 11.sp))
+fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glance.unit.ColorProvider) {
+    Column(
+        modifier = GlanceModifier
+            .width(36.dp)
+            .height(58.dp)
+            .background(GlanceTheme.colors.surface)
+            .cornerRadius(18.dp)
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = value,
+            style = TextStyle(
+                color = colorProvider,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        )
+        Spacer(modifier = GlanceModifier.height(2.dp))
+        Text(
+            text = label,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurfaceVariant,
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold
+            )
+        )
     }
 }
 
