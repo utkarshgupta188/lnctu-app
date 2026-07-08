@@ -63,9 +63,9 @@ fun TimetableScreen(data: TimetableData) {
             DAYS.forEachIndexed { index, day ->
                 val selected = selectedDay == index
                 val isToday = index == todayIdx
-                val bg = if (selected) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                val border = if (isToday && !selected) androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.5f)) else null
+                val border = if (isToday && !selected) androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)) else null
 
                 Box(
                     modifier = Modifier
@@ -90,7 +90,7 @@ fun TimetableScreen(data: TimetableData) {
                                 modifier = Modifier
                                     .size(4.dp)
                                     .clip(CircleShape)
-                                    .background(if (selected) Color.White else Primary)
+                                    .background(if (selected) Color.White else MaterialTheme.colorScheme.primary)
                             )
                         }
                     }
@@ -121,8 +121,8 @@ private fun DaySchedule(dayName: String, periods: List<TimetablePeriod>, isToday
             item {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Primary.copy(alpha = 0.08f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.2f)),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
@@ -130,7 +130,7 @@ private fun DaySchedule(dayName: String, periods: List<TimetablePeriod>, isToday
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Primary,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -175,7 +175,7 @@ private fun PeriodCard(period: TimetablePeriod) {
     val (bgColor, accentColor, typeLabel) = when {
         isLunch    -> Triple(Amber.copy(alpha = 0.06f), Amber, "Lunch Break")
         isLab      -> Triple(Green.copy(alpha = 0.06f), Green, "Lab / Practical")
-        isTutorial -> Triple(Primary.copy(alpha = 0.06f), Primary, "Tutorial Session")
+        isTutorial -> Triple(MaterialTheme.colorScheme.primary.copy(alpha = 0.06f), MaterialTheme.colorScheme.primary, "Tutorial Session")
         isProject  -> Triple(Orange.copy(alpha = 0.06f), Orange, "Project Class")
         else       -> Triple(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), MaterialTheme.colorScheme.primary, "Lecture")
     }

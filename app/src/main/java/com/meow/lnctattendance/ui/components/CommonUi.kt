@@ -32,7 +32,7 @@ fun LoadingScreen(message: String = "Loading…") {
             CircularProgressIndicator(
                 modifier = Modifier.size(60.dp),
                 strokeWidth = 5.dp,
-                color = Primary,
+                color = MaterialTheme.colorScheme.primary,
             )
             Spacer(Modifier.height(20.dp))
             Text(

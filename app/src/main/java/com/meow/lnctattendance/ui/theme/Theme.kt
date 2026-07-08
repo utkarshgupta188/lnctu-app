@@ -16,40 +16,40 @@ import androidx.core.view.WindowCompat
 // Dark scheme — deep space indigo
 // ──────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
-    primary              = Primary,
-    onPrimary            = Color.White,
-    primaryContainer     = Color(0xFF1E1B4B),
-    onPrimaryContainer   = Color(0xFFE0E7FF),
-    secondary            = Secondary,
-    onSecondary          = Color.White,
+    primary              = Color(0xFFE3BD9A),
+    onPrimary            = Color(0xFF4A2B14),
+    primaryContainer     = Color(0xFF6F4E37),
+    onPrimaryContainer   = Color(0xFFFBEFE3),
+    secondary            = Color(0xFFD6B599),
+    onSecondary          = Color(0xFF4A2B14),
     background           = DarkBackground,
     surface              = DarkSurface,
     surfaceVariant       = DarkCard,
-    onBackground         = Color(0xFFF1F5F9),
-    onSurface            = Color(0xFFF1F5F9),
-    onSurfaceVariant     = Color(0xFF94A3B8),
-    outline              = Color(0xFF334155),
+    onBackground         = Color(0xFFEDE0D4),
+    onSurface            = Color(0xFFEDE0D4),
+    onSurfaceVariant     = Color(0xFFCFBFB0),
+    outline              = Color(0xFF9C8A7B),
     error                = Red,
     onError              = Color.White,
 )
 
 // ──────────────────────────────────────────────
-// Light scheme — clean white + indigo
+// Light scheme — warm sand + coffee
 // ──────────────────────────────────────────────
 private val LightColorScheme = lightColorScheme(
     primary              = Primary,
     onPrimary            = Color.White,
-    primaryContainer     = Color(0xFFEEEDFF),
-    onPrimaryContainer   = Color(0xFF1A005E),
-    secondary            = Color(0xFF018786),
+    primaryContainer     = Color(0xFFF5DDBE),
+    onPrimaryContainer   = Color(0xFF2C1A0E),
+    secondary            = Secondary,
     onSecondary          = Color.White,
-    background           = LightBackground,   // 0xFFF5F5FA
-    surface              = LightSurface,      // 0xFFFFFFFF
-    surfaceVariant       = LightCard,         // 0xFFF0F0FF
-    onBackground         = Color(0xFF1A1A2E),
-    onSurface            = Color(0xFF1A1A2E),
-    onSurfaceVariant     = Color(0xFF555570),
-    outline              = Color(0xFFCCCCDD),
+    background           = LightBackground,
+    surface              = LightSurface,
+    surfaceVariant       = LightCard,
+    onBackground         = Color(0xFF211B15),
+    onSurface            = Color(0xFF211B15),
+    onSurfaceVariant     = Color(0xFF534639),
+    outline              = Color(0xFF857463),
     error                = Red,
     onError              = Color.White,
 )

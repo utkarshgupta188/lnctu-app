@@ -2,25 +2,27 @@ package com.meow.lnctattendance.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand - Obsidian & Aurora
-val Primary = Color(0xFF6366F1) // Indigo Glow
-val PrimaryDark = Color(0xFF4F46E5) // Dark Indigo
-val Secondary = Color(0xFF0D9488) // Teal Aura
+// Brand - Material 3 Warm Sand/Peach tones
+val Primary = Color(0xFF6F4E37) // Deep coffee brown
+val PrimaryDark = Color(0xFF4E3629)
+val Secondary = Color(0xFF8F6F54) // Soft brown accent
 
-// Status - Modern Tailored Hues
-val Green = Color(0xFF10B981) // Emerald Success
-val Amber = Color(0xFFF59E0B) // Modern Amber Warning
-val Red = Color(0xFFEF4444) // Vibrant Red Danger
-val Orange = Color(0xFFF97316) // Cyber Orange
+// Status
+val Green = Color(0xFF2E7D32) // Soft forest green
+val Amber = Color(0xFFD87C24) // Soft terracotta warning
+val Red = Color(0xFFC62828) // Soft brick red
+val Orange = Color(0xFFD84315)
 
-// Background & Surfaces (Obsidian Obsidian Dark)
-val DarkBackground = Color(0xFF09090F)
-val DarkSurface = Color(0xFF151522)
-val DarkCard = Color(0xFF1F1F35)
-val DarkCardAlt = Color(0xFF1B1B2C)
+// Warm Sand Scheme (Light)
+val LightBackground = Color(0xFFFDFBF7) // Warm off-white sand
+val LightSurface = Color(0xFFF5EFE6) // Warm sand surface
+val LightCard = Color(0xFFEADFCF) // Soft sand card
+val LightCardAlt = Color(0xFFE4D6C4)
 
-// Light variants (Clean glass style)
-val LightBackground = Color(0xFFF8FAFC)
-val LightSurface = Color(0xFFFFFFFF)
-val LightCard = Color(0xFFEEF2F6)
+// Warm Sand Scheme (Dark - obsidian warm)
+val DarkBackground = Color(0xFF141210) // Dark sand
+val DarkSurface = Color(0xFF1D1A16)
+val DarkCard = Color(0xFF29241E)
+val DarkCardAlt = Color(0xFF211D19)
+
 

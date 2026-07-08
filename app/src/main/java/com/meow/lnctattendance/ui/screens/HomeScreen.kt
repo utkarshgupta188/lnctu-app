@@ -72,7 +72,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CircleShape)
-                                    .background(Primary),
+                                    .background(MaterialTheme.colorScheme.primary),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -130,7 +130,7 @@ fun HomeScreen(
             ) {
                 StatChip("Present", data.present.toString(), Green, Modifier.weight(1f))
                 StatChip("Absent", data.absent.toString(), Red, Modifier.weight(1f))
-                StatChip("Total", data.totalClasses.toString(), Primary, Modifier.weight(1f))
+                StatChip("Total", data.totalClasses.toString(), MaterialTheme.colorScheme.primary, Modifier.weight(1f))
             }
         }
 
@@ -156,7 +156,7 @@ fun HomeScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf("All", "At Risk", "Safe").forEach { tag ->
                             val selected = selectedFilter == tag
-                            val bg = if (selected) Primary else MaterialTheme.colorScheme.surfaceVariant
+                            val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                             val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                             Box(
                                 modifier = Modifier
@@ -187,7 +187,7 @@ fun HomeScreen(
                     .fillMaxWidth()
                     .height(50.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -269,7 +269,7 @@ private fun LazyListScope.datewiseSection(
                             text = if (expanded) "Show Less ▲" else "View Full Log (${records.size}) ▼",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Primary,
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 } else {

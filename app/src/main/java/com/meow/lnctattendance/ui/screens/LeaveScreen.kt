@@ -44,7 +44,7 @@ fun LeaveScreen(
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    color = Primary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         ) {
@@ -52,7 +52,7 @@ fun LeaveScreen(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
                 text = { Text("Day Simulator", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
-                selectedContentColor = Primary,
+                selectedContentColor = MaterialTheme.colorScheme.primary,
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Tab(
@@ -64,7 +64,7 @@ fun LeaveScreen(
                     }
                 },
                 text = { Text("Whole Week View", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
-                selectedContentColor = Primary,
+                selectedContentColor = MaterialTheme.colorScheme.primary,
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -122,7 +122,7 @@ private fun DaySimulatorContent(
                     ) {
                         DAYS.forEach { day ->
                             val selected = selectedDay == day
-                            val bg = if (selected) Primary else MaterialTheme.colorScheme.surfaceVariant
+                            val bg = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                             val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                             Box(
                                 modifier = Modifier
@@ -147,7 +147,7 @@ private fun DaySimulatorContent(
                         onClick = { onSimulate(selectedDay) },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text("Run Simulation", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
@@ -307,14 +307,14 @@ private fun WeekSimulatorContent(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(24.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.25f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
                     ) {
                         Column(Modifier.padding(20.dp)) {
                             Text(
                                 "WHOLE WEEK SUMMARY",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Primary,
+                                color = MaterialTheme.colorScheme.primary,
                                 letterSpacing = 1.sp
                             )
                             Spacer(Modifier.height(4.dp))

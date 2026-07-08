@@ -416,9 +416,9 @@ private fun MainNavigation(
                         },
                         label  = { Text(dest.label, fontSize = 11.sp) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Primary,
-                            selectedTextColor = Primary,
-                            indicatorColor    = Primary.copy(alpha = 0.14f),
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            indicatorColor    = MaterialTheme.colorScheme.primaryContainer,
                         ),
                     )
                 }

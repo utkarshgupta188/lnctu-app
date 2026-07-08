@@ -62,7 +62,7 @@ fun RiskScreen(data: RiskEngineData, onRefresh: () -> Unit) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        MiniInfoItem("Target Threshold", "${"%.0f".format(data.threshold)}%", Primary)
+                        MiniInfoItem("Target Threshold", "${"%.0f".format(data.threshold)}%", MaterialTheme.colorScheme.primary)
                         MiniInfoItem("At-Risk Courses", data.atRiskSubjectsCount.toString(), Red)
                         if (data.criticalAlert) {
                             Surface(
@@ -146,7 +146,7 @@ private fun SubjectRiskCard(risk: SubjectRisk) {
             ) {
                 RiskInfoChip("Present: ${risk.present}", Green, Modifier.weight(1f))
                 RiskInfoChip("Absent: ${risk.absent}", Red, Modifier.weight(1f))
-                RiskInfoChip("Total: ${risk.total}", Primary, Modifier.weight(1f))
+                RiskInfoChip("Total: ${risk.total}", MaterialTheme.colorScheme.primary, Modifier.weight(1f))
             }
 
             if (risk.alreadyBelowThreshold) {
