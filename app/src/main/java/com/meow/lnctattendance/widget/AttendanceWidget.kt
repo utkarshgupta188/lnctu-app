@@ -54,7 +54,7 @@ import java.util.Date
 import java.util.Locale
 
 private const val TAG = "AttendanceWidget"
-private const val TWO_HOURS_MS = 2 * 60 * 60 * 1000L
+private const val THREE_HOURS_MS = 3 * 60 * 60 * 1000L
 
 private val KEY_PRESENT    = intPreferencesKey("present")
 private val KEY_ABSENT     = intPreferencesKey("absent")
@@ -125,84 +125,6 @@ private fun formatTimestamp(ms: Long): String {
     return "Updated at ${sdf.format(Date(ms))}"
 }
 
-private fun getWidgetColorScheme(theme: String, isDark: Boolean): androidx.compose.material3.ColorScheme {
-    return if (isDark) {
-        when (theme) {
-            "sage_green" -> androidx.compose.material3.darkColorScheme(
-                primary = Color(0xFF81C784),
-                primaryContainer = Color(0xFF1B5E20),
-                onPrimaryContainer = Color(0xFFE8F5E9),
-                background = Color(0xFF121B13),
-                surface = Color(0xFF1E281F),
-                surfaceVariant = Color(0xFF2D3B2F),
-                onBackground = Color(0xFFE8F5E9),
-                onSurface = Color(0xFFE8F5E9),
-                onSurfaceVariant = Color(0xFFA5D6A7)
-            )
-            "purple_aurora" -> androidx.compose.material3.darkColorScheme(
-                primary = Color(0xFFCE93D8),
-                primaryContainer = Color(0xFF4A148C),
-                onPrimaryContainer = Color(0xFFF3E5F5),
-                background = Color(0xFF1C1221),
-                surface = Color(0xFF2A1B30),
-                surfaceVariant = Color(0xFF382540),
-                onBackground = Color(0xFFF3E5F5),
-                onSurface = Color(0xFFF3E5F5),
-                onSurfaceVariant = Color(0xFFE1BEE7)
-            )
-            "gold_mustard" -> androidx.compose.material3.darkColorScheme(
-                primary = Color(0xFFFFD54F),
-                primaryContainer = Color(0xFFF57F17),
-                onPrimaryContainer = Color(0xFFFFFDE7),
-                background = Color(0xFF1D1B12),
-                surface = Color(0xFF2A281E),
-                surfaceVariant = Color(0xFF3B382B),
-                onBackground = Color(0xFFFFFDE7),
-                onSurface = Color(0xFFFFFDE7),
-                onSurfaceVariant = Color(0xFFFFE082)
-            )
-            else -> DarkWidgetColorScheme
-        }
-    } else {
-        when (theme) {
-            "sage_green" -> androidx.compose.material3.lightColorScheme(
-                primary = Color(0xFF2E6B40),
-                primaryContainer = Color(0xFFC2F0C2),
-                onPrimaryContainer = Color(0xFF1B5E20),
-                background = Color(0xFFF0FDF4),
-                surface = Color(0xFFE8F8EE),
-                surfaceVariant = Color(0xFFD0ECD8),
-                onBackground = Color(0xFF1B5E20),
-                onSurface = Color(0xFF1B5E20),
-                onSurfaceVariant = Color(0xFF2E6B40)
-            )
-            "purple_aurora" -> androidx.compose.material3.lightColorScheme(
-                primary = Color(0xFF6A1B9A),
-                primaryContainer = Color(0xFFE8D0FF),
-                onPrimaryContainer = Color(0xFF4A148C),
-                background = Color(0xFFFAF5FF),
-                surface = Color(0xFFF3E8FF),
-                surfaceVariant = Color(0xFFE0C3FC),
-                onBackground = Color(0xFF4A148C),
-                onSurface = Color(0xFF4A148C),
-                onSurfaceVariant = Color(0xFF6A1B9A)
-            )
-            "gold_mustard" -> androidx.compose.material3.lightColorScheme(
-                primary = Color(0xFFB58900),
-                primaryContainer = Color(0xFFFFF0C2),
-                onPrimaryContainer = Color(0xFFF57F17),
-                background = Color(0xFFFFFDF5),
-                surface = Color(0xFFFFF9E6),
-                surfaceVariant = Color(0xFFFFF1CC),
-                onBackground = Color(0xFFF57F17),
-                onSurface = Color(0xFFF57F17),
-                onSurfaceVariant = Color(0xFFB58900)
-            )
-            else -> LightWidgetColorScheme
-        }
-    }
-}
-
 // ── Widget ─────────────────────────────────────────────────────────────────────
 
 class AttendanceWidgetReceiver : GlanceAppWidgetReceiver() {
@@ -222,7 +144,7 @@ class AttendanceWidget : GlanceAppWidget() {
         val lastFetchMs = currentState[KEY_LAST_FETCH] ?: 0L
         val now = System.currentTimeMillis()
         val shouldFetch = isInternetAvailable(context) &&
-                          (now - lastFetchMs) >= TWO_HOURS_MS
+                          (now - lastFetchMs) >= THREE_HOURS_MS
 
         if (shouldFetch) {
             Log.d(TAG, "Auto-refreshing attendance (last fetch ${(now - lastFetchMs) / 60000}min ago)")
@@ -236,10 +158,9 @@ class AttendanceWidget : GlanceAppWidget() {
         val appDarkMode = prefsManager.darkMode.firstOrNull()
         val isSystemDark = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val useDarkMode = appDarkMode ?: isSystemDark
-        val widgetTheme = prefsManager.widgetTheme.firstOrNull() ?: "default"
 
         provideContent {
-            val scheme = getWidgetColorScheme(widgetTheme, useDarkMode)
+            val scheme = if (useDarkMode) DarkWidgetColorScheme else LightWidgetColorScheme
             val forcedColors = ColorProviders(light = scheme, dark = scheme)
             GlanceTheme(colors = forcedColors) {
                 val prefs      = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()

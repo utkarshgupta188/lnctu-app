@@ -145,7 +145,6 @@ private fun AttendanceApp(
     } else {
         MainNavigation(
             vm           = vm,
-            prefs        = prefs,
             username     = credentials?.first
                 ?: (authState as? AuthState.Authenticated)?.login?.username ?: "",
             isDark       = isDark,
@@ -361,7 +360,6 @@ private enum class NavDest(
 @Composable
 private fun MainNavigation(
     vm: AttendanceViewModel,
-    prefs: PreferencesManager,
     username: String,
     isDark: Boolean,
     onToggleDark: () -> Unit,
@@ -395,69 +393,6 @@ private fun MainNavigation(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 actions = {
-                    var showPaletteMenu by remember { mutableStateOf(false) }
-                    val scope = rememberCoroutineScope()
-                    val context = LocalContext.current
-
-                    Box {
-                        IconButton(onClick = { showPaletteMenu = true }) {
-                            Icon(
-                                imageVector        = Icons.Default.Palette,
-                                contentDescription = "Widget Theme Options",
-                                tint               = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showPaletteMenu,
-                            onDismissRequest = { showPaletteMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Default Theme") },
-                                onClick = {
-                                    showPaletteMenu = false
-                                    scope.launch {
-                                        prefs.setWidgetTheme("default")
-                                        com.meow.lnctattendance.widget.AttendanceWidgetReceiver().glanceAppWidget.updateAll(context)
-                                        com.meow.lnctattendance.widget.TimetableWidgetReceiver().glanceAppWidget.updateAll(context)
-                                    }
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Sage Green") },
-                                onClick = {
-                                    showPaletteMenu = false
-                                    scope.launch {
-                                        prefs.setWidgetTheme("sage_green")
-                                        com.meow.lnctattendance.widget.AttendanceWidgetReceiver().glanceAppWidget.updateAll(context)
-                                        com.meow.lnctattendance.widget.TimetableWidgetReceiver().glanceAppWidget.updateAll(context)
-                                    }
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Purple Aurora") },
-                                onClick = {
-                                    showPaletteMenu = false
-                                    scope.launch {
-                                        prefs.setWidgetTheme("purple_aurora")
-                                        com.meow.lnctattendance.widget.AttendanceWidgetReceiver().glanceAppWidget.updateAll(context)
-                                        com.meow.lnctattendance.widget.TimetableWidgetReceiver().glanceAppWidget.updateAll(context)
-                                    }
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Gold Mustard") },
-                                onClick = {
-                                    showPaletteMenu = false
-                                    scope.launch {
-                                        prefs.setWidgetTheme("gold_mustard")
-                                        com.meow.lnctattendance.widget.AttendanceWidgetReceiver().glanceAppWidget.updateAll(context)
-                                        com.meow.lnctattendance.widget.TimetableWidgetReceiver().glanceAppWidget.updateAll(context)
-                                    }
-                                }
-                            )
-                        }
-                    }
-
                     IconButton(onClick = onToggleDark) {
                         Icon(
                             imageVector        = if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,

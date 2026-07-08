@@ -20,7 +20,6 @@ object PrefKeys {
     val LAST_PASSWORD: Preferences.Key<String> = stringPreferencesKey("last_password")
     val LAST_LOGIN_AT: Preferences.Key<Long> = longPreferencesKey("last_login_at")
     val DARK_MODE: Preferences.Key<Boolean> = booleanPreferencesKey("dark_mode")
-    val WIDGET_THEME: Preferences.Key<String> = stringPreferencesKey("widget_theme")
 }
 
 data class LastLogin(
@@ -61,9 +60,6 @@ class PreferencesManager(private val context: Context) {
         prefs[PrefKeys.DARK_MODE]
     }
 
-    val widgetTheme: Flow<String> = context.dataStore.data.map { prefs ->
-        prefs[PrefKeys.WIDGET_THEME] ?: "default"
-    }
 
     suspend fun saveLastLogin(baseUrl: String, username: String, password: String, timestampMillis: Long) {
         val encryptedPassword = com.meow.lnctattendance.security.CryptoManager.encrypt(password)
@@ -78,12 +74,6 @@ class PreferencesManager(private val context: Context) {
     suspend fun setDarkMode(dark: Boolean) {
         context.dataStore.edit { prefs ->
             prefs[PrefKeys.DARK_MODE] = dark
-        }
-    }
-
-    suspend fun setWidgetTheme(theme: String) {
-        context.dataStore.edit { prefs ->
-            prefs[PrefKeys.WIDGET_THEME] = theme
         }
     }
 

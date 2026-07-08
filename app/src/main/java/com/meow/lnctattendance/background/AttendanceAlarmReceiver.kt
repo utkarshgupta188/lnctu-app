@@ -11,7 +11,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.meow.lnctattendance.MainActivity
-import com.meow.lnctattendance.api.ApiService
+import com.meow.lnctattendance.data.ApiService
 import com.meow.lnctattendance.prefs.AuthState
 import com.meow.lnctattendance.prefs.PreferencesManager
 import kotlinx.coroutines.CoroutineScope
@@ -68,7 +68,7 @@ class AttendanceAlarmReceiver : BroadcastReceiver() {
         val channelId = "attendance_alerts"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES_O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
                 "Attendance Alerts",
