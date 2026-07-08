@@ -1,4 +1,4 @@
-LNCT Attendance is an open-source Android application
+LNCTU Attendance is an open-source Android application
 that fetches attendance data from the LNCTU portal.
 
 Features:

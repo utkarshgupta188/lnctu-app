@@ -105,8 +105,6 @@ private val TranslucentSurface = androidx.glance.color.ColorProvider(
 
 private val KEY_LAST_FETCH = longPreferencesKey("last_fetch_ms")
 
-private val SIZE_SMALL  = DpSize(57.dp,  57.dp)
-private val SIZE_MEDIUM = DpSize(130.dp, 57.dp)
 private val SIZE_LARGE  = DpSize(200.dp, 110.dp)
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -324,7 +322,7 @@ fun AttendanceWidgetLarge(
         ) {
             Column(modifier = GlanceModifier.defaultWeight()) {
                 Text(
-                    text = "LNCT Attendance",
+                    text = "LNCTU Attendance",
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
                         fontSize = 16.sp,

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LNCTAttendance" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#141210</item>
+        <item name="android:windowSplashScreenBackground">#141210</item>
+    </style>
+</resources>

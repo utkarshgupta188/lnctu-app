@@ -4,7 +4,6 @@ import androidx.compose.ui.graphics.Color
 
 // Brand - Material 3 Warm Sand/Peach tones
 val Primary = Color(0xFF6F4E37) // Deep coffee brown
-val PrimaryDark = Color(0xFF4E3629)
 val Secondary = Color(0xFF8F6F54) // Soft brown accent
 
 // Status
