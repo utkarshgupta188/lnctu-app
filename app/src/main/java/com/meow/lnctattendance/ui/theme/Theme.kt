@@ -18,17 +18,17 @@ import androidx.core.view.WindowCompat
 private val DarkColorScheme = darkColorScheme(
     primary              = Primary,
     onPrimary            = Color.White,
-    primaryContainer     = Color(0xFF2A2A4A),
-    onPrimaryContainer   = Color(0xFFCDCBFF),
+    primaryContainer     = Color(0xFF1E1B4B),
+    onPrimaryContainer   = Color(0xFFE0E7FF),
     secondary            = Secondary,
-    onSecondary          = Color.Black,
-    background           = DarkBackground,    // 0xFF0F0F17
-    surface              = DarkSurface,       // 0xFF1A1A27
-    surfaceVariant       = DarkCard,          // 0xFF22223A
-    onBackground         = Color(0xFFE8E8F4),
-    onSurface            = Color(0xFFE8E8F4),
-    onSurfaceVariant     = Color(0xFFAAAAAC),
-    outline              = Color(0xFF44445A),
+    onSecondary          = Color.White,
+    background           = DarkBackground,
+    surface              = DarkSurface,
+    surfaceVariant       = DarkCard,
+    onBackground         = Color(0xFFF1F5F9),
+    onSurface            = Color(0xFFF1F5F9),
+    onSurfaceVariant     = Color(0xFF94A3B8),
+    outline              = Color(0xFF334155),
     error                = Red,
     onError              = Color.White,
 )

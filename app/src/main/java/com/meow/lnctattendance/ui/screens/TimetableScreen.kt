@@ -5,17 +5,21 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meow.lnctattendance.data.TimetableData
@@ -32,10 +36,6 @@ private val DAY_SHORT = mapOf(
     "Friday"    to "Fri",
 )
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Root screen
-// ──────────────────────────────────────────────────────────────────────────────
-
 @Composable
 fun TimetableScreen(data: TimetableData) {
     val todayIdx = remember {
@@ -45,48 +45,59 @@ fun TimetableScreen(data: TimetableData) {
             Calendar.WEDNESDAY -> 2
             Calendar.THURSDAY  -> 3
             Calendar.FRIDAY    -> 4
-            else               -> 0          // weekend → show Monday
+            else               -> 0
         }
     }
 
     var selectedDay by remember { mutableIntStateOf(todayIdx) }
 
     Column(Modifier.fillMaxSize()) {
-        // ── Day-picker tab row ────────────────────────────────────────────
-        ScrollableTabRow(
-            selectedTabIndex = selectedDay,
-            containerColor = MaterialTheme.colorScheme.surface,
-            edgePadding = 12.dp,
+        // Day Picker Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(vertical = 12.dp, horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             DAYS.forEachIndexed { index, day ->
+                val selected = selectedDay == index
                 val isToday = index == todayIdx
-                Tab(
-                    selected = selectedDay == index,
-                    onClick = { selectedDay = index },
-                    text = {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                        ) {
-                            Text(
-                                DAY_SHORT[day] ?: day,
-                                fontWeight = if (selectedDay == index) FontWeight.ExtraBold else FontWeight.Normal,
-                                fontSize = 13.sp,
-                            )
-                            // Today dot
-                            Spacer(Modifier.height(3.dp))
+                val bg = if (selected) Primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                val border = if (isToday && !selected) androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.5f)) else null
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(bg)
+                        .clickable { selectedDay = index }
+                        .then(if (border != null) Modifier.background(Color.Transparent).then(Modifier.background(bg)) else Modifier)
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = DAY_SHORT[day] ?: day,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = fg
+                        )
+                        if (isToday) {
+                            Spacer(Modifier.height(2.dp))
                             Box(
-                                Modifier
-                                    .size(if (isToday) 5.dp else 0.dp)
-                                    .background(Primary, RoundedCornerShape(50)),
+                                modifier = Modifier
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(if (selected) Color.White else Primary)
                             )
                         }
-                    },
-                )
+                    }
+                }
             }
         }
 
-        // ── Content area ──────────────────────────────────────────────────
         AnimatedContent(
             targetState = selectedDay,
             transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -99,29 +110,26 @@ fun TimetableScreen(data: TimetableData) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Day schedule list
-// ──────────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun DaySchedule(dayName: String, periods: List<TimetablePeriod>, isToday: Boolean) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (isToday) {
             item {
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Primary.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Primary.copy(alpha = 0.08f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.2f)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        "📅 Today's Schedule",
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        "Active Schedule — Today",
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Primary,
                     )
                 }
@@ -137,12 +145,14 @@ private fun DaySchedule(dayName: String, periods: List<TimetablePeriod>, isToday
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = 64.dp),
+                        .padding(top = 80.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "No classes scheduled",
+                        "No classes scheduled for today",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -152,10 +162,6 @@ private fun DaySchedule(dayName: String, periods: List<TimetablePeriod>, isToday
         item { Spacer(Modifier.height(16.dp)) }
     }
 }
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Period card
-// ──────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun PeriodCard(period: TimetablePeriod) {
@@ -167,91 +173,83 @@ private fun PeriodCard(period: TimetablePeriod) {
     val isProject  = subjectUpper.contains("PROJECT") || subjectUpper.contains("MINOR")
 
     val (bgColor, accentColor, typeLabel) = when {
-        isLunch    -> Triple(Amber.copy(alpha = 0.10f),   Amber,   "🍽  Lunch Break")
-        isLab      -> Triple(Green.copy(alpha = 0.10f),   Green,   "🔬 Lab / Practical")
-        isTutorial -> Triple(Primary.copy(alpha = 0.10f), Primary, "📝 Tutorial")
-        isProject  -> Triple(Orange.copy(alpha = 0.10f),  Orange,  "🛠 Project")
-        else       -> Triple(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primary, "")
+        isLunch    -> Triple(Amber.copy(alpha = 0.06f), Amber, "Lunch Break")
+        isLab      -> Triple(Green.copy(alpha = 0.06f), Green, "Lab / Practical")
+        isTutorial -> Triple(Primary.copy(alpha = 0.06f), Primary, "Tutorial Session")
+        isProject  -> Triple(Orange.copy(alpha = 0.06f), Orange, "Project Class")
+        else       -> Triple(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), MaterialTheme.colorScheme.primary, "Lecture")
     }
 
-    // ── Parse time string safely ──────────────────────────────────────────
-    // Time format from API: "09:00-09:45" — split on first "-" only, because
-    // times themselves never contain a "-", only the separator does.
     val dashIdx   = period.time.indexOf('-')
     val startTime = if (dashIdx >= 0) period.time.substring(0, dashIdx).trim() else period.time.trim()
     val endTime   = if (dashIdx >= 0) period.time.substring(dashIdx + 1).trim() else ""
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.15f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // ── Time column (fixed 80 dp — wide enough for "10:30") ───────
             Column(
-                modifier = Modifier.width(80.dp),
+                modifier = Modifier.width(70.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     text = startTime,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
                     color = accentColor,
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
                 )
                 if (endTime.isNotEmpty()) {
-                    // Small connector line between start and end
                     Box(
                         Modifier
-                            .width(1.5.dp)
-                            .height(10.dp)
-                            .background(accentColor.copy(alpha = 0.35f), RoundedCornerShape(1.dp))
+                            .width(1.dp)
+                            .height(6.dp)
+                            .background(accentColor.copy(alpha = 0.3f))
                             .align(Alignment.CenterHorizontally),
                     )
                     Text(
                         text = endTime,
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Normal,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
-                        maxLines = 1,
                     )
                 }
             }
 
-            Spacer(Modifier.width(4.dp))
+            Spacer(Modifier.width(12.dp))
 
-            // ── Vertical accent bar ───────────────────────────────────────
             Box(
                 Modifier
-                    .width(3.dp)
-                    .height(46.dp)
-                    .background(accentColor, RoundedCornerShape(2.dp)),
+                    .width(2.dp)
+                    .height(36.dp)
+                    .background(accentColor, RoundedCornerShape(1.dp)),
             )
 
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(16.dp))
 
-            // ── Subject name + type label ─────────────────────────────────
             Column(Modifier.weight(1f)) {
                 Text(
                     text = period.subject,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurface,
-                    lineHeight = 20.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 if (typeLabel.isNotEmpty()) {
-                    Spacer(Modifier.height(3.dp))
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         text = typeLabel,
-                        fontSize = 11.sp,
-                        color = accentColor.copy(alpha = 0.85f),
-                        fontWeight = FontWeight.Medium,
+                        fontSize = 10.sp,
+                        color = accentColor,
+                        fontWeight = FontWeight.Bold,
                     )
                 }
             }

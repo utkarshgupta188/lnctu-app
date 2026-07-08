@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meow.lnctattendance.data.RiskEngineData
@@ -23,54 +24,67 @@ fun RiskScreen(data: RiskEngineData, onRefresh: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // ── Overall risk card ─────────────────────────────────────────────
+        // ── Overall Risk Card ─────────────────────────────────────────────
         item {
-            val riskColor = when (data.overallRiskStatus) {
+            val riskColor = when (data.overallRiskStatus.uppercase()) {
                 "SAFE" -> Green
                 "WARNING" -> Amber
                 else -> Red
             }
-            GradientCard(
-                colors = listOf(riskColor.copy(alpha = 0.7f), riskColor),
+            Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, riskColor.copy(alpha = 0.25f))
             ) {
-                Text(
-                    "Overall Risk",
-                    fontSize = 13.sp,
-                    color = Color.White.copy(alpha = 0.75f),
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    data.overallRiskStatus,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                    MiniInfoItem("Threshold", "${"%.0f".format(data.threshold)}%", Color.White)
-                    MiniInfoItem("At Risk", data.atRiskSubjectsCount.toString(), Color.White)
-                    if (data.criticalAlert) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = Color.White.copy(alpha = 0.2f),
-                        ) {
-                            Text(
-                                "🚨 CRITICAL ALERT",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                            )
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "Risk Engine Status",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = riskColor,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        data.overallRiskStatus,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MiniInfoItem("Target Threshold", "${"%.0f".format(data.threshold)}%", Primary)
+                        MiniInfoItem("At-Risk Courses", data.atRiskSubjectsCount.toString(), Red)
+                        if (data.criticalAlert) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Red.copy(alpha = 0.12f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Red.copy(alpha = 0.25f))
+                            ) {
+                                Text(
+                                    "CRITICAL ALERT",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Red,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        item { SectionHeader("Subject Risk Analysis") }
+        item { SectionHeader("Course Vulnerabilities") }
 
         items(data.subjectRisks, key = { it.subject }) { risk ->
             SubjectRiskCard(risk)
@@ -83,8 +97,8 @@ fun RiskScreen(data: RiskEngineData, onRefresh: () -> Unit) {
 @Composable
 private fun MiniInfoItem(label: String, value: String, color: Color) {
     Column {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = color)
-        Text(label, fontSize = 11.sp, color = color.copy(alpha = 0.7f))
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = color)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -98,68 +112,73 @@ private fun SubjectRiskCard(risk: SubjectRisk) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
     ) {
         Column(Modifier.padding(16.dp)) {
-            // Subject name + badge
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
                 Text(
                     risk.subject,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
                     modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.width(8.dp))
                 RiskBadge(risk.riskLevel)
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             AttendanceBar(risk.percentage)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Stats row
+            // Attendance details
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                RiskInfoChip("P: ${risk.present}", Green, Modifier.weight(1f))
-                RiskInfoChip("A: ${risk.absent}", Red, Modifier.weight(1f))
-                RiskInfoChip("T: ${risk.total}", Primary, Modifier.weight(1f))
+                RiskInfoChip("Present: ${risk.present}", Green, Modifier.weight(1f))
+                RiskInfoChip("Absent: ${risk.absent}", Red, Modifier.weight(1f))
+                RiskInfoChip("Total: ${risk.total}", Primary, Modifier.weight(1f))
             }
 
-            Spacer(Modifier.height(10.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-            Spacer(Modifier.height(10.dp))
-
             if (risk.alreadyBelowThreshold) {
-                // Recovery info
+                Spacer(Modifier.height(12.dp))
                 Row(
-                    Modifier.fillMaxWidth().background(Red.copy(alpha = 0.08f), RoundedCornerShape(10.dp)).padding(10.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .background(Red.copy(alpha = 0.06f), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text("⚠️ Below threshold!", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Red)
+                        Text("Recovery Action Plan", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Red)
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            "Need ${risk.consecutivePresentsNeeded} consecutive classes (≈${risk.estimatedDaysToRecover} days) to recover",
-                            fontSize = 12.sp,
+                            "Attend ${risk.consecutivePresentsNeeded} consecutive classes (approx. ${risk.estimatedDaysToRecover} days) to climb back to ${"%.0f".format(75.0)}%.",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             } else {
-                // Safe — show how many can miss
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                Spacer(Modifier.height(10.dp))
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    InfoLabel("Can skip", "${risk.absentsAllowedBeforeThreshold} more", riskColor)
-                    InfoLabel("If miss 1", "${"%.1f".format(risk.projectedPercentageIfMissOne)}%", Amber)
+                    InfoLabel("Safe to Skip", "${risk.absentsAllowedBeforeThreshold} periods", riskColor)
+                    InfoLabel("Projected on Next Miss", "${"%.1f".format(risk.projectedPercentageIfMissOne)}%", Amber)
                 }
             }
         }
@@ -171,14 +190,16 @@ private fun RiskInfoChip(text: String, color: Color, modifier: Modifier = Modifi
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = color.copy(alpha = 0.1f),
+        color = color.copy(alpha = 0.08f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.15f))
     ) {
         Text(
             text,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp).fillMaxWidth(),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(vertical = 6.dp).fillMaxWidth(),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
             color = color,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }
@@ -186,7 +207,7 @@ private fun RiskInfoChip(text: String, color: Color, modifier: Modifier = Modifi
 @Composable
 private fun InfoLabel(label: String, value: String, color: Color) {
     Column {
-        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = color)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = color)
     }
 }

@@ -1,17 +1,22 @@
 package com.meow.lnctattendance.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.meow.lnctattendance.UiState
@@ -30,18 +35,25 @@ fun LeaveScreen(
     onSimulateDay: (String) -> Unit,
     onLoadWeek: () -> Unit,
 ) {
-    // 0 = Day Simulator, 1 = Week View
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Column(Modifier.fillMaxSize()) {
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.surface,
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                    color = Primary
+                )
+            }
         ) {
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
-                text = { Text("Day Simulator") },
+                text = { Text("Day Simulator", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                selectedContentColor = Primary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Tab(
                 selected = selectedTab == 1,
@@ -51,15 +63,15 @@ fun LeaveScreen(
                         onLoadWeek()
                     }
                 },
-                text = { Text("Week View") },
+                text = { Text("Whole Week View", fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                selectedContentColor = Primary,
+                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
         AnimatedContent(
             targetState = selectedTab,
-            transitionSpec = {
-                fadeIn() togetherWith fadeOut()
-            },
+            transitionSpec = { fadeIn() togetherWith fadeOut() },
             label = "tab_anim",
         ) { tab ->
             when (tab) {
@@ -70,10 +82,6 @@ fun LeaveScreen(
     }
 }
 
-// ──────────────────────────────────────────────
-// Single day simulator
-// ──────────────────────────────────────────────
-
 @Composable
 private fun DaySimulatorContent(
     state: UiState<LeaveSimulatorData>,
@@ -81,179 +89,176 @@ private fun DaySimulatorContent(
 ) {
     var selectedDay by remember { mutableStateOf("Monday") }
 
-    Column(Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text("Simulate Taking Leave On:", fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
-                        Spacer(Modifier.height(12.dp))
-                        
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            DAYS.take(3).forEach { day ->
-                                DayChip(
-                                    day = day,
-                                    selected = selectedDay == day,
-                                    onClick = { selectedDay = day },
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(6.dp))
-                        Row(
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            DAYS.drop(3).forEach { day ->
-                                DayChip(
-                                    day = day,
-                                    selected = selectedDay == day,
-                                    onClick = { selectedDay = day },
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                            if (DAYS.drop(3).size < 3) {
-                                Spacer(Modifier.weight((3 - DAYS.drop(3).size).toFloat()))
-                            }
-                        }
-                        Spacer(Modifier.height(14.dp))
-                        Button(
-                            onClick = { onSimulate(selectedDay) },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                        ) {
-                            Text("Simulate $selectedDay", fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                }
-            }
-
-            when (state) {
-                is UiState.Idle -> {
-                    // Do nothing, wait for user to press simulate
-                }
-                is UiState.Loading -> {
-                    item { LoadingScreen("Simulating $selectedDay…") }
-                }
-                is UiState.Error -> {
-                    item { ErrorScreen(state.message) { onSimulate(selectedDay) } }
-                }
-                is UiState.Success -> {
-                    val sim = state.data
-                    item { SimulationResultCard(sim) }
-                    if (sim.subjectSimulations.isNotEmpty()) {
-                        item { SectionHeader("Subject Impact Details") }
-                        items(sim.subjectSimulations, key = { it.subject }) { sub ->
-                            SubjectImpactCard(sub)
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(Modifier.height(16.dp)) }
-        }
-    }
-}
-
-@Composable
-private fun DayChip(day: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                day.take(3),
-                fontSize = 12.sp,
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        },
-        modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
-    )
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Column(Modifier.padding(20.dp)) {
+                    Text(
+                        "Leave Simulator",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Predict the impact of missing a specific day on your overall attendance metrics.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        DAYS.forEach { day ->
+                            val selected = selectedDay == day
+                            val bg = if (selected) Primary else MaterialTheme.colorScheme.surfaceVariant
+                            val fg = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(bg)
+                                    .clickable { selectedDay = day }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    day.take(3),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = fg
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(18.dp))
+                    Button(
+                        onClick = { onSimulate(selectedDay) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    ) {
+                        Text("Run Simulation", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+            }
+        }
+
+        when (state) {
+            is UiState.Idle -> {}
+            is UiState.Loading -> {
+                item { LoadingScreen("Simulating $selectedDay...") }
+            }
+            is UiState.Error -> {
+                item { ErrorScreen(state.message) { onSimulate(selectedDay) } }
+            }
+            is UiState.Success -> {
+                val sim = state.data
+                item { SimulationResultCard(sim) }
+                if (sim.subjectSimulations.isNotEmpty()) {
+                    item { SectionHeader("Class-level Impact Details") }
+                    items(sim.subjectSimulations, key = { it.subject }) { sub ->
+                        SubjectImpactCard(sub)
+                    }
+                }
+            }
+        }
+
+        item { Spacer(Modifier.height(16.dp)) }
+    }
 }
 
 @Composable
 private fun SimulationResultCard(data: LeaveSimulatorData) {
     val recColor = recommendationColor(data.recommendation)
-    GradientCard(
-        colors = listOf(recColor.copy(alpha = 0.75f), recColor),
+    Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, recColor.copy(alpha = 0.25f))
     ) {
-        Text(data.recommendation.replace("_", " "), fontSize = 11.sp, color = Color.White.copy(alpha = 0.75f))
-        Spacer(Modifier.height(4.dp))
-        Text(data.advice, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            ResultStat(
-                "Overall Now",
-                "${"%.1f".format(data.overallAttendance.current)}%",
-                Color.White,
+        Column(Modifier.padding(20.dp)) {
+            Text(
+                text = "SIMULATION RESULT",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = recColor,
+                letterSpacing = 1.sp
             )
-            ResultStat(
-                "After Leave",
-                "${"%.1f".format(data.overallAttendance.projected)}%",
-                Color.White,
-            )
-            ResultStat(
-                "Drop",
-                "-${"%.1f".format(data.overallAttendance.drop)}%",
-                Color.White,
+            Spacer(Modifier.height(4.dp))
+            Text(data.advice, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                ResultStat("Overall Current", "${"%.1f".format(data.overallAttendance.current)}%", MaterialTheme.colorScheme.onSurface)
+                ResultStat("Projected", "${"%.1f".format(data.overallAttendance.projected)}%", recColor)
+                ResultStat("Expected Drop", "-${"%.1f".format(data.overallAttendance.drop)}%", Red)
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "${data.totalClassesOnDay} scheduled class units • ${data.affectedSubjectsCount} subjects affected",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "${data.totalClassesOnDay} class units • ${data.affectedSubjectsCount} subjects affected",
-            fontSize = 12.sp,
-            color = Color.White.copy(alpha = 0.75f),
-        )
     }
 }
 
 @Composable
 private fun ResultStat(label: String, value: String, color: Color) {
     Column {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = color)
-        Text(label, fontSize = 11.sp, color = color.copy(alpha = 0.75f))
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = color)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun SubjectImpactCard(sub: SubjectSimulation) {
     val impactColor = when (sub.impactLevel.uppercase()) {
-        "SEVERE" -> Red
-        "HIGH" -> Orange
+        "SEVERE", "HIGH" -> Red
         else -> Amber
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
     ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(sub.subject, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                Spacer(Modifier.height(4.dp))
                 Text(
-                    "${sub.classesOnThisDay} class unit(s)",
-                    fontSize = 12.sp,
+                    text = sub.subject,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "${sub.classesOnThisDay} class period(s) on day",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (sub.willFallBelow75) {
                     Spacer(Modifier.height(4.dp))
-                    Text("⚠️ Will fall below 75%!", fontSize = 11.sp, color = Red, fontWeight = FontWeight.Bold)
+                    Text("⚠️ Will breach 75% limit!", fontSize = 11.sp, color = Red, fontWeight = FontWeight.ExtraBold)
                 }
             }
             Spacer(Modifier.width(12.dp))
@@ -264,16 +269,12 @@ private fun SubjectImpactCard(sub: SubjectSimulation) {
                     "${"%.1f".format(sub.currentPercentage)}% → ${"%.1f".format(sub.projectedPercentage)}%",
                     fontSize = 12.sp,
                     color = impactColor,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.ExtraBold,
                 )
             }
         }
     }
 }
-
-// ──────────────────────────────────────────────
-// Week view
-// ──────────────────────────────────────────────
 
 @Composable
 private fun WeekSimulatorContent(
@@ -283,11 +284,13 @@ private fun WeekSimulatorContent(
     when (state) {
         is UiState.Idle -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Button(onClick = onRefresh) { Text("Load Week Simulation") }
+                Button(onClick = onRefresh, shape = RoundedCornerShape(14.dp)) {
+                    Text("Compute Week Impact")
+                }
             }
         }
         is UiState.Loading -> {
-            LoadingScreen("Simulating week…")
+            LoadingScreen("Running weekly forecasts...")
         }
         is UiState.Error -> {
             ErrorScreen(state.message, onRefresh)
@@ -297,37 +300,64 @@ private fun WeekSimulatorContent(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    GradientCard(
-                        colors = listOf(Primary.copy(alpha = 0.8f), PrimaryDark),
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.25f))
                     ) {
-                        Text("Current Attendance", fontSize = 13.sp, color = Color.White.copy(alpha = 0.75f))
-                        Text(
-                            "${"%.1f".format(data.currentOverallPercentage)}%",
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
-                        Spacer(Modifier.height(12.dp))
-                        Text("If you miss the whole week:", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
-                        Spacer(Modifier.height(4.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                            WholeWeekStat("Projected", "${"%.1f".format(data.wholeWeekLeave.projectedOverallPercentage)}%", Color.White)
-                            WholeWeekStat("Drop", "-${"%.1f".format(data.wholeWeekLeave.overallDrop)}%", Red.copy(alpha = 0.9f))
-                            WholeWeekStat("Absences", "${data.wholeWeekLeave.totalAbsences}", Amber)
+                        Column(Modifier.padding(20.dp)) {
+                            Text(
+                                "WHOLE WEEK SUMMARY",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Primary,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "Current Overall: ${"%.1f".format(data.currentOverallPercentage)}%",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                "If you skip the entire week:",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                WholeWeekStat("Projected Pct", "${"%.1f".format(data.wholeWeekLeave.projectedOverallPercentage)}%", MaterialTheme.colorScheme.onSurface)
+                                WholeWeekStat("Total Drop", "-${"%.1f".format(data.wholeWeekLeave.overallDrop)}%", Red)
+                                WholeWeekStat("Total Absences", "${data.wholeWeekLeave.totalAbsences}", Amber)
+                            }
                         }
                     }
                 }
 
-                item { SectionHeader("Day-by-Day Impact") }
+                item { SectionHeader("Day-by-Day Forecast Timeline") }
 
                 items(data.weekSimulation, key = { it.day }) { day ->
-                    DaySimCard(day.day, recommendation = day.recommendation, advice = day.advice, projectedPct = day.projectedOverallPercentage, drop = day.overallDrop, totalClasses = day.totalClassUnits, topSubs = day.subjectSimulations)
+                    DaySimCard(
+                        day = day.day,
+                        recommendation = day.recommendation,
+                        advice = day.advice,
+                        projectedPct = day.projectedOverallPercentage,
+                        drop = day.overallDrop,
+                        totalClasses = day.totalClassUnits,
+                        topSubs = day.subjectSimulations
+                    )
                 }
 
                 item { Spacer(Modifier.height(16.dp)) }
@@ -339,8 +369,8 @@ private fun WeekSimulatorContent(
 @Composable
 private fun WholeWeekStat(label: String, value: String, color: Color) {
     Column {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = color)
-        Text(label, fontSize = 11.sp, color = Color.White.copy(alpha = 0.7f))
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = color)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -359,8 +389,9 @@ private fun DaySimCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)),
         onClick = { expanded = !expanded },
     ) {
         Column(Modifier.padding(16.dp)) {
@@ -370,23 +401,26 @@ private fun DaySimCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(day, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(day, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "$totalClasses class units • $advice",
-                        fontSize = 12.sp,
+                        "$totalClasses periods • $advice",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Spacer(Modifier.width(8.dp))
                 Column(horizontalAlignment = Alignment.End) {
                     Surface(
-                        shape = RoundedCornerShape(50),
-                        color = recColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp),
+                        color = recColor.copy(alpha = 0.12f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, recColor.copy(alpha = 0.25f))
                     ) {
                         Text(
                             recommendation,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = recColor,
                         )
@@ -394,32 +428,31 @@ private fun DaySimCard(
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "→ ${"%.1f".format(projectedPct)}% (-${"%.1f".format(drop)}%)",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = Red,
-                        fontWeight = FontWeight.Medium,
+                        fontWeight = FontWeight.ExtraBold,
                     )
                 }
             }
 
-            // Expandable subject impacts
             AnimatedVisibility(visible = expanded) {
                 Column {
+                    Spacer(Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
                     Spacer(Modifier.height(10.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-                    Spacer(Modifier.height(8.dp))
-                    Text("Most impacted subjects:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Subject level breakdowns:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(6.dp))
                     topSubs.forEach { sub ->
                         Row(
-                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            Modifier.fillMaxWidth().padding(vertical = 3.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Text(sub.subject, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                            Text(sub.subject, fontSize = 12.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
                                 "${"%.1f".format(sub.currentPercentage)}% → ${"%.1f".format(sub.projectedPercentage)}%",
                                 fontSize = 12.sp,
                                 color = Red,
-                                fontWeight = FontWeight.Medium,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }

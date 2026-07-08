@@ -2,24 +2,25 @@ package com.meow.lnctattendance.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand
-val Primary = Color(0xFF6C63FF)
-val PrimaryDark = Color(0xFF4B44CC)
-val Secondary = Color(0xFF03DAC6)
+// Brand - Obsidian & Aurora
+val Primary = Color(0xFF6366F1) // Indigo Glow
+val PrimaryDark = Color(0xFF4F46E5) // Dark Indigo
+val Secondary = Color(0xFF0D9488) // Teal Aura
 
-// Status
-val Green = Color(0xFF4CAF50)
-val Amber = Color(0xFFFFC107)
-val Red = Color(0xFFE53935)
-val Orange = Color(0xFFFF6D00)
+// Status - Modern Tailored Hues
+val Green = Color(0xFF10B981) // Emerald Success
+val Amber = Color(0xFFF59E0B) // Modern Amber Warning
+val Red = Color(0xFFEF4444) // Vibrant Red Danger
+val Orange = Color(0xFFF97316) // Cyber Orange
 
-// Background shades (dark)
-val DarkBackground = Color(0xFF0F0F17)
-val DarkSurface = Color(0xFF1A1A27)
-val DarkCard = Color(0xFF22223A)
-val DarkCardAlt = Color(0xFF1E1E30)
+// Background & Surfaces (Obsidian Obsidian Dark)
+val DarkBackground = Color(0xFF09090F)
+val DarkSurface = Color(0xFF151522)
+val DarkCard = Color(0xFF1F1F35)
+val DarkCardAlt = Color(0xFF1B1B2C)
 
-// Light variants
-val LightBackground = Color(0xFFF5F5FA)
+// Light variants (Clean glass style)
+val LightBackground = Color(0xFFF8FAFC)
 val LightSurface = Color(0xFFFFFFFF)
-val LightCard = Color(0xFFF0F0FF)
+val LightCard = Color(0xFFEEF2F6)
+

@@ -1,5 +1,6 @@
 package com.meow.lnctattendance.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,85 +26,98 @@ fun AnalysisScreen(data: AnalysisData, onRefresh: () -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // ── Summary card ──────────────────────────────────────────────────
+        // ── Summary Card ──────────────────────────────────────────────────
         item {
-            val statusColor = when (data.summary.overallStatus) {
+            val statusColor = when (data.summary.overallStatus.uppercase()) {
                 "GOOD" -> Green
                 "WARNING" -> Amber
                 else -> Red
             }
-            GradientCard(
-                colors = listOf(statusColor.copy(alpha = 0.7f), statusColor),
+            Card(
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.25f))
             ) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            data.summary.overallStatus,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
-                            color = Color.White,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            data.summary.overallMessage,
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.85f),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            MiniStat("At Risk", data.summary.atRiskCount.toString(), Red)
-                            MiniStat("Safe", data.summary.safeCount.toString(), Green)
-                            MiniStat("Total", data.summary.totalSubjects.toString(), Color.White)
+                Column(Modifier.padding(20.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "ANALYSIS STATUS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = statusColor,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                data.summary.overallStatus,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                data.summary.overallMessage,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
+                        Spacer(Modifier.width(16.dp))
+                        AttendanceCircle(
+                            percentage = data.summary.overallPercentage,
+                            modifier = Modifier.size(80.dp),
+                            strokeWidth = 7.dp
+                        )
                     }
-                    Spacer(Modifier.width(12.dp))
-                    AttendanceCircle(
-                        percentage = data.summary.overallPercentage,
-                        modifier = Modifier.size(100.dp),
-                    )
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        MiniStat("At Risk", data.summary.atRiskCount.toString(), Red)
+                        MiniStat("Safe", data.summary.safeCount.toString(), Green)
+                        MiniStat("Total Courses", data.summary.totalSubjects.toString(), Primary)
+                    }
                 }
             }
         }
 
-        // ── Day leave analysis ────────────────────────────────────────────
-        item { SectionHeader("Best Days to Take Leave") }
+        // ── Day Leave Analysis ────────────────────────────────────────────
+        item { SectionHeader("Leave Recommendation by Day") }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DAY_ORDER.forEach { day ->
-                    data.dayAnalysis[day]?.let { dayData ->
-                        DayLeaveCard(day, dayData)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    DAY_ORDER.forEachIndexed { index, day ->
+                        data.dayAnalysis[day]?.let { dayData ->
+                            DayLeaveCard(day, dayData)
+                            if (index < DAY_ORDER.size - 1) {
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
                     }
                 }
             }
         }
 
         // ── Predictions ───────────────────────────────────────────────────
-        item { SectionHeader("Subject Predictions") }
+        item { SectionHeader("Subject Predictions & Forecast") }
         items(data.predictions, key = { it.subject }) { pred ->
             PredictionCard(pred)
-        }
-
-        // ── At risk subjects ──────────────────────────────────────────────
-        if (data.atRiskSubjects.isNotEmpty()) {
-            item { SectionHeader("⚠️ At-Risk Subjects") }
-            items(data.atRiskSubjects, key = { "risk_${it.name}" }) { subject ->
-                SubjectCard(subject)
-            }
-        }
-
-        // ── Safe subjects ─────────────────────────────────────────────────
-        if (data.safeSubjects.isNotEmpty()) {
-            item { SectionHeader("✅ Safe Subjects") }
-            items(data.safeSubjects, key = { "safe_${it.name}" }) { subject ->
-                SubjectCard(subject)
-            }
         }
 
         item { Spacer(Modifier.height(16.dp)) }
@@ -112,87 +126,82 @@ fun AnalysisScreen(data: AnalysisData, onRefresh: () -> Unit) {
 
 @Composable
 private fun MiniStat(label: String, value: String, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = color)
-        Text(label, fontSize = 11.sp, color = Color.White.copy(alpha = 0.75f))
+    Column {
+        Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = color)
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun DayLeaveCard(day: String, data: DayAnalysis) {
-    val recColor = when (data.leaveRecommendation) {
+    val recColor = when (data.leaveRecommendation.uppercase()) {
         "SAFE" -> Green
         "CAUTION" -> Amber
         else -> Red
     }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(Modifier.weight(1f)) {
+            Text(day, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "${data.totalClasses} classes • ${data.atRiskCount} risk • ${data.safeCount} safe",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = recColor.copy(alpha = 0.12f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, recColor.copy(alpha = 0.25f))
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(day, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    "${data.totalClasses} classes • ${data.atRiskCount} at-risk • ${data.safeCount} safe",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = recColor.copy(alpha = 0.15f),
-            ) {
-                Text(
-                    data.leaveRecommendation,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = recColor,
-                )
-            }
+            Text(
+                data.leaveRecommendation,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = recColor,
+            )
         }
     }
 }
 
 @Composable
 private fun PredictionCard(pred: SubjectPrediction) {
-    val statusColor = when (pred.status) {
+    val statusColor = when (pred.status.uppercase()) {
         "SAFE" -> Green
         "WARNING" -> Amber
         else -> Red
     }
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, statusColor.copy(alpha = 0.2f))
     ) {
         Row(
             Modifier.padding(16.dp),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 Modifier
                     .size(8.dp)
-                    .offset(y = 6.dp),
-            ) {
-                Surface(
-                    Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(50),
-                    color = statusColor,
-                ) {}
-            }
+                    .background(statusColor, RoundedCornerShape(50))
+            )
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(pred.subject, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                Spacer(Modifier.height(2.dp))
+                Text(pred.subject, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Spacer(Modifier.height(3.dp))
                 Text(
                     pred.message,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }

@@ -22,7 +22,7 @@ import androidx.compose.ui.unit.sp
 import com.meow.lnctattendance.ui.theme.*
 
 // ──────────────────────────────────────────────
-// Loading
+// Loading Screen
 // ──────────────────────────────────────────────
 
 @Composable
@@ -45,7 +45,7 @@ fun LoadingScreen(message: String = "Loading…") {
 }
 
 // ──────────────────────────────────────────────
-// Error
+// Error Screen
 // ──────────────────────────────────────────────
 
 @Composable
@@ -88,28 +88,22 @@ fun ErrorScreen(message: String, onRetry: (() -> Unit)? = null) {
 }
 
 // ──────────────────────────────────────────────
-// Attendance percentage circle
-// Fixed: text is perfectly centred regardless of stroke width by using
-// a fixed-size Box so both the indicator arc and the text label share
-// exactly the same coordinate space.
+// Modern Dashboard Attendance Circle
 // ──────────────────────────────────────────────
 
 @Composable
 fun AttendanceCircle(
     percentage: Double,
     modifier: Modifier = Modifier,
-    strokeWidth: Dp = 9.dp,
+    strokeWidth: Dp = 10.dp,
 ) {
     val color = attendanceColor(percentage)
     val animatedPct by animateFloatAsState(
         targetValue = percentage.toFloat(),
-        animationSpec = tween(1000, easing = EaseOutCubic),
+        animationSpec = tween(1200, easing = EaseOutQuubic),
         label = "pct_arc",
     )
 
-    // Use a Box with an explicit aspect-ratio so width == height always.
-    // The CircularProgressIndicator is drawn with Modifier.matchParentSize so
-    // it covers the exact same rectangle as the centering Box – no offset.
     Box(
         modifier = modifier.aspectRatio(1f),
         contentAlignment = Alignment.Center,
@@ -119,26 +113,27 @@ fun AttendanceCircle(
             modifier = Modifier.matchParentSize(),
             strokeWidth = strokeWidth,
             color = color,
-            trackColor = color.copy(alpha = 0.18f),
+            trackColor = color.copy(alpha = 0.12f),
             strokeCap = StrokeCap.Round,
         )
-        // Label sits dead-centre of the same Box
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
                 text = "${"%.1f".format(percentage)}%",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                lineHeight = 24.sp,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 26.sp,
             )
             Text(
-                text = "Attendance",
-                fontSize = 10.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 12.sp,
+                text = "OVERALL",
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                letterSpacing = 1.sp,
+                lineHeight = 11.sp,
             )
         }
     }
@@ -152,18 +147,19 @@ fun AttendanceCircle(
 fun StatChip(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.12f)),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
     ) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 14.dp, horizontal = 10.dp),
+                .padding(vertical = 12.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = color)
             Spacer(Modifier.height(2.dp))
-            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -175,21 +171,22 @@ fun StatChip(label: String, value: String, color: Color, modifier: Modifier = Mo
 @Composable
 fun RiskBadge(level: String) {
     val (bg, fg, label) = when (level.uppercase()) {
-        "CRITICAL" -> Triple(Red.copy(alpha = 0.15f), Red, "CRITICAL")
-        "HIGH"     -> Triple(Orange.copy(alpha = 0.15f), Orange, "HIGH")
-        "SEVERE"   -> Triple(Red.copy(alpha = 0.15f), Red, "SEVERE")
-        "SAFE", "LOW" -> Triple(Green.copy(alpha = 0.15f), Green, "SAFE")
-        else       -> Triple(Amber.copy(alpha = 0.15f), Amber, level)
+        "CRITICAL" -> Triple(Red.copy(alpha = 0.12f), Red, "CRITICAL")
+        "HIGH"     -> Triple(Orange.copy(alpha = 0.12f), Orange, "HIGH")
+        "SEVERE"   -> Triple(Red.copy(alpha = 0.12f), Red, "SEVERE")
+        "SAFE", "LOW" -> Triple(Green.copy(alpha = 0.12f), Green, "SAFE")
+        else       -> Triple(Amber.copy(alpha = 0.12f), Amber, level)
     }
     Surface(
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(8.dp),
         color = bg,
+        border = androidx.compose.foundation.BorderStroke(1.dp, fg.copy(alpha = 0.25f)),
         modifier = Modifier.wrapContentSize(),
     ) {
         Text(
             label,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
-            fontSize = 11.sp,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             color = fg,
         )
@@ -204,13 +201,17 @@ fun RiskBadge(level: String) {
 fun GradientCard(
     colors: List<Color>,
     modifier: Modifier = Modifier,
-    cornerRadius: Int = 20,
+    cornerRadius: Int = 24,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(cornerRadius.dp))
-            .background(Brush.linearGradient(colors)),
+            .background(
+                Brush.linearGradient(
+                    colors = colors
+                )
+            ),
     ) {
         Column(Modifier.padding(20.dp), content = content)
     }
@@ -225,14 +226,14 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     Text(
         title,
         style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         color = MaterialTheme.colorScheme.onBackground,
         modifier = modifier.padding(vertical = 8.dp),
     )
 }
 
 // ──────────────────────────────────────────────
-// Progress bar for percentage
+// Pill progress bar for percentage
 // ──────────────────────────────────────────────
 
 @Composable
@@ -240,33 +241,53 @@ fun AttendanceBar(percentage: Double, modifier: Modifier = Modifier) {
     val color = attendanceColor(percentage)
     val animatedWidth by animateFloatAsState(
         targetValue = (percentage / 100f).toFloat().coerceIn(0f, 1f),
-        animationSpec = tween(800, easing = EaseOutCubic),
+        animationSpec = tween(1000, easing = EaseOutQuubic),
         label = "bar",
     )
     Column(modifier = modifier) {
-        Text(
-            "${"%.1f".format(percentage)}%",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
-            color = color,
-        )
-        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Attendance Strength",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "${"%.1f".format(percentage)}%",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = color,
+            )
+        }
+        Spacer(Modifier.height(6.dp))
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(6.dp)
-                .clip(RoundedCornerShape(50))
-                .background(color.copy(alpha = 0.15f)),
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color.copy(alpha = 0.12f)),
         ) {
             Box(
                 Modifier
                     .fillMaxWidth(animatedWidth)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(50))
+                    .clip(RoundedCornerShape(4.dp))
                     .background(color),
             )
         }
     }
+}
+
+// ──────────────────────────────────────────────
+// EaseOutCubic Spec replacement helper
+// ──────────────────────────────────────────────
+val EaseOutQuubic = Easing { fraction ->
+    val f = fraction - 1f
+    f * f * f + 1f
 }
 
 // ──────────────────────────────────────────────
