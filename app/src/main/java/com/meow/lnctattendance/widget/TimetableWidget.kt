@@ -19,6 +19,8 @@ import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -183,7 +185,8 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
     // Row height = vertical padding (4+4) + text (~14sp) ≈ 30dp
     // 7 × 30dp + header ~22dp + spacer 5dp + wrapper padding 16dp = ~210dp
     // Fits within minHeight="220dp" and targetCellHeight="4"
-    val rowHeight = 30.dp
+    val rowHeight = 36.dp
+    val isSyncing = status.contains("Updating") || status.contains("Syncing")
 
     Column(
         modifier = GlanceModifier
@@ -211,15 +214,15 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
             Box(
                 modifier = GlanceModifier
                     .clickable(actionRunCallback<RefreshTimetableAction>())
-                    .background(GlanceTheme.colors.primaryContainer)
+                    .background(if (isSyncing) GlanceTheme.colors.surface else GlanceTheme.colors.primaryContainer)
                     .cornerRadius(8.dp)
                     .padding(horizontal = 6.dp, vertical = 2.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Sync",
+                    text = if (isSyncing) "Syncing" else "Sync",
                     style = TextStyle(
-                        color = GlanceTheme.colors.onPrimaryContainer,
+                        color = if (isSyncing) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onPrimaryContainer,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -243,21 +246,18 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                 )
             }
         } else {
-            // Nested Column — max 7 rows
-            Column(
+            // LazyColumn to allow scrolling and showing ALL lectures dynamically
+            LazyColumn(
                 modifier = GlanceModifier.fillMaxSize()
             ) {
-                periods.take(7).forEachIndexed { index, (time, subject) ->
-                    if (index > 0) {
-                        Spacer(modifier = GlanceModifier.height(4.dp))
-                    }
+                items(periods) { (time, subject) ->
                     Row(
                         modifier = GlanceModifier
                             .fillMaxWidth()
                             .height(rowHeight)
                             .background(TranslucentSurface) // High-contrast dynamic translucent look
                             .cornerRadius(12.dp) // Capsule style card
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Time Pill Badge
@@ -265,29 +265,30 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                             modifier = GlanceModifier
                                 .background(GlanceTheme.colors.primaryContainer)
                                 .cornerRadius(8.dp)
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = time.substringBefore("-").trim(),
                                 style = TextStyle(
                                     color = GlanceTheme.colors.onPrimaryContainer,
-                                    fontSize = 9.sp,
+                                    fontSize = 11.sp, // Larger and clearer time text
                                     fontWeight = FontWeight.Bold
                                 )
                             )
                         }
-                        Spacer(modifier = GlanceModifier.width(8.dp))
+                        Spacer(modifier = GlanceModifier.width(10.dp))
                         Text(
                             text = subject,
                             style = TextStyle(
                                 color = GlanceTheme.colors.onSurface,
-                                fontSize = 11.sp
+                                fontSize = 13.sp // Larger and clearer subject text
                             ),
                             maxLines = 1,
                             modifier = GlanceModifier.defaultWeight()
                         )
                     }
+                    Spacer(modifier = GlanceModifier.height(4.dp))
                 }
             }
         }

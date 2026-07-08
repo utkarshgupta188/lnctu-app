@@ -169,7 +169,10 @@ class AttendanceWidget : GlanceAppWidget() {
                 val total      = prefs[KEY_TOTAL]      ?: 0
                 val percentage = prefs[KEY_PERCENTAGE] ?: 0.0
                 val lastFetch  = prefs[KEY_LAST_FETCH] ?: 0L
-                val status     = if (lastFetch > 0L) formatTimestamp(lastFetch)
+                val statusVal  = prefs[KEY_STATUS] ?: ""
+                val isSyncing  = statusVal.contains("Updating") || statusVal.contains("Syncing")
+                val status     = if (isSyncing) statusVal
+                                 else if (lastFetch > 0L) formatTimestamp(lastFetch)
                                  else (prefs[KEY_STATUS] ?: "Tap ↻ to load")
 
                 val size = LocalSize.current
@@ -238,8 +241,9 @@ fun AttendanceWidgetCompact(percentage: Double, status: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val isSyncing = status.contains("Updating") || status.contains("Syncing")
         Text(
-            text = "${"%.1f".format(percentage)}%",
+            text = if (isSyncing) "..." else "${"%.1f".format(percentage)}%",
             style = TextStyle(
                 color = androidx.glance.unit.ColorProvider(pctColor),
                 fontSize = 28.sp,
@@ -248,15 +252,15 @@ fun AttendanceWidgetCompact(percentage: Double, status: String) {
         )
         Spacer(modifier = GlanceModifier.height(8.dp))
         Text(
-            text = "↻ Refresh",
+            text = if (isSyncing) "Syncing..." else "↻ Refresh",
             style = TextStyle(
-                color = GlanceTheme.colors.onPrimaryContainer,
+                color = if (isSyncing) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onPrimaryContainer,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             ),
             modifier = GlanceModifier
                 .clickable(actionRunCallback<RefreshAttendanceAction>())
-                .background(GlanceTheme.colors.primaryContainer)
+                .background(if (isSyncing) GlanceTheme.colors.surface else GlanceTheme.colors.primaryContainer)
                 .cornerRadius(20.dp) // Pill shape button
                 .padding(horizontal = 14.dp, vertical = 6.dp)
         )
@@ -283,6 +287,7 @@ fun AttendanceWidgetLarge(
     percentage: Double, status: String
 ) {
     val pctColor = pctColor(percentage)
+    val isSyncing = status.contains("Updating") || status.contains("Syncing")
 
     Column(
         modifier = GlanceModifier
@@ -323,15 +328,15 @@ fun AttendanceWidgetLarge(
             Box(
                 modifier = GlanceModifier
                     .clickable(actionRunCallback<RefreshAttendanceAction>())
-                    .background(GlanceTheme.colors.primaryContainer)
+                    .background(if (isSyncing) GlanceTheme.colors.surface else GlanceTheme.colors.primaryContainer)
                     .cornerRadius(14.dp)
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Sync",
+                    text = if (isSyncing) "Syncing" else "Sync",
                     style = TextStyle(
-                        color = GlanceTheme.colors.onPrimaryContainer,
+                        color = if (isSyncing) GlanceTheme.colors.onSurfaceVariant else GlanceTheme.colors.onPrimaryContainer,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -352,7 +357,7 @@ fun AttendanceWidgetLarge(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${"%.1f".format(percentage)}%",
+                    text = if (isSyncing) "..." else "${"%.1f".format(percentage)}%",
                     style = TextStyle(
                         color = androidx.glance.unit.ColorProvider(pctColor),
                         fontSize = 42.sp,
@@ -393,11 +398,11 @@ fun VerticalStatPill(label: String, value: String, color: Color) {
 fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glance.unit.ColorProvider) {
     Column(
         modifier = GlanceModifier
-            .width(48.dp) // Wider capsules to fit larger text
-            .height(78.dp) // Taller capsules
+            .width(56.dp) // Even wider to accommodate massive text
+            .height(88.dp) // Taller capsules
             .background(TranslucentSurface) // High-contrast dynamic translucent look
-            .cornerRadius(24.dp)
-            .padding(vertical = 10.dp),
+            .cornerRadius(28.dp) // Extra rounded M3 capsule corners
+            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -405,7 +410,7 @@ fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glanc
             text = value,
             style = TextStyle(
                 color = colorProvider,
-                fontSize = 22.sp, // Bold, massive, highly clear numbers
+                fontSize = 26.sp, // Ultra bold, massive, clear numbers
                 fontWeight = FontWeight.Bold
             )
         )
@@ -414,7 +419,7 @@ fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glanc
             text = label,
             style = TextStyle(
                 color = GlanceTheme.colors.onSurfaceVariant,
-                fontSize = 14.sp, // Larger and clearer labels
+                fontSize = 16.sp, // Ultra clear labels
                 fontWeight = FontWeight.Bold
             )
         )
