@@ -32,6 +32,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.GlanceTheme
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.Dispatchers
@@ -42,10 +43,45 @@ import java.io.BufferedReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Calendar
+import androidx.glance.material3.ColorProviders
+import com.meow.lnctattendance.ui.theme.*
 
 private const val TAG = "TimetableWidget"
 private val KEY_JSON   = stringPreferencesKey("timetable_json")
 private val KEY_STATUS = stringPreferencesKey("status")
+
+private val WidgetColors = ColorProviders(
+    light = androidx.compose.material3.lightColorScheme(
+        primary              = Primary,
+        onPrimary            = Color.White,
+        primaryContainer     = Color(0xFFF5DDBE),
+        onPrimaryContainer   = Color(0xFF2C1A0E),
+        secondary            = Secondary,
+        onSecondary          = Color.White,
+        background           = LightBackground,
+        surface              = LightSurface,
+        surfaceVariant       = LightCard,
+        onBackground         = Color(0xFF211B15),
+        onSurface            = Color(0xFF211B15),
+        onSurfaceVariant     = Color(0xFF534639),
+        outline              = Color(0xFF857463),
+    ),
+    dark = androidx.compose.material3.darkColorScheme(
+        primary              = Color(0xFFE3BD9A),
+        onPrimary            = Color(0xFF4A2B14),
+        primaryContainer     = Color(0xFF6F4E37),
+        onPrimaryContainer   = Color(0xFFFBEFE3),
+        secondary            = Color(0xFFD6B599),
+        onSecondary          = Color(0xFF4A2B14),
+        background           = DarkBackground,
+        surface              = DarkSurface,
+        surfaceVariant       = DarkCard,
+        onBackground         = Color(0xFFEDE0D4),
+        onSurface            = Color(0xFFEDE0D4),
+        onSurfaceVariant     = Color(0xFFCFBFB0),
+        outline              = Color(0xFF9C8A7B),
+    )
+)
 
 private suspend fun fetchTodayPeriods(): String = withContext(Dispatchers.IO) {
     val conn = URL("https://lnctu.vercel.app/timetable").openConnection() as HttpURLConnection
@@ -91,10 +127,12 @@ class TimetableWidget : GlanceAppWidget() {
         }
 
         provideContent {
-            val prefs  = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()
-            val json   = prefs[KEY_JSON]   ?: "[]"
-            val status = prefs[KEY_STATUS] ?: "Tap ↻ to load"
-            TimetableWidgetContent(json, status)
+            GlanceTheme(colors = WidgetColors) {
+                val prefs  = androidx.glance.currentState<androidx.datastore.preferences.core.Preferences>()
+                val json   = prefs[KEY_JSON]   ?: "[]"
+                val status = prefs[KEY_STATUS] ?: "Tap ↻ to load"
+                TimetableWidgetContent(json, status)
+            }
         }
     }
 }
@@ -132,7 +170,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
         modifier = GlanceModifier
             .fillMaxSize()
             .appWidgetBackground()
-            .background(Color(0xFF1A1A27))
+            .background(GlanceTheme.colors.background)
             .cornerRadius(16.dp)
             .padding(horizontal = 10.dp, vertical = 8.dp)
     ) {
@@ -144,7 +182,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
             Text(
                 text = "Today  •  ${getTodayName()}",
                 style = TextStyle(
-                    color = androidx.glance.unit.ColorProvider(Color.White),
+                    color = GlanceTheme.colors.onSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 ),
@@ -153,7 +191,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
             Text(
                 text = "↻",
                 style = TextStyle(
-                    color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)),
+                    color = GlanceTheme.colors.primary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 ),
@@ -173,7 +211,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                 Text(
                     text = status,
                     style = TextStyle(
-                        color = androidx.glance.unit.ColorProvider(Color.Gray),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 11.sp
                     )
                 )
@@ -187,7 +225,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                         modifier = GlanceModifier
                             .fillMaxWidth()
                             .height(rowHeight)
-                            .background(Color(0xFF22223A))
+                            .background(GlanceTheme.colors.surface)
                             .cornerRadius(6.dp)
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -195,7 +233,7 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                         Text(
                             text = time.substringBefore("-").trim(),
                             style = TextStyle(
-                                color = androidx.glance.unit.ColorProvider(Color(0xFF6C63FF)),
+                                color = GlanceTheme.colors.primary,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             ),
@@ -205,13 +243,13 @@ fun TimetableWidgetContent(timetableJson: String, status: String) {
                             modifier = GlanceModifier
                                 .width(1.dp)
                                 .height(12.dp)
-                                .background(Color(0xFF6C63FF))
+                                .background(GlanceTheme.colors.outline)
                         )
                         Spacer(modifier = GlanceModifier.width(6.dp))
                         Text(
                             text = subject,
                             style = TextStyle(
-                                color = androidx.glance.unit.ColorProvider(Color.White),
+                                color = GlanceTheme.colors.onSurface,
                                 fontSize = 11.sp
                             ),
                             maxLines = 1,

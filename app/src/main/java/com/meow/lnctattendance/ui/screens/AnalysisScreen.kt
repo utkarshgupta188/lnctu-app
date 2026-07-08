@@ -86,7 +86,7 @@ fun AnalysisScreen(data: AnalysisData, onRefresh: () -> Unit) {
                     ) {
                         MiniStat("At Risk", data.summary.atRiskCount.toString(), Red)
                         MiniStat("Safe", data.summary.safeCount.toString(), Green)
-                        MiniStat("Total Courses", data.summary.totalSubjects.toString(), Primary)
+                        MiniStat("Total Courses", data.summary.totalSubjects.toString(), MaterialTheme.colorScheme.primary)
                     }
                 }
             }

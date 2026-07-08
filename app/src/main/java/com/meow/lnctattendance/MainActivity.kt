@@ -241,7 +241,7 @@ private fun LoginScreen(
                 value           = username,
                 onValueChange   = { username = it },
                 label           = { Text("Student Username") },
-                leadingIcon     = { Icon(Icons.Default.Person, null, tint = Primary) },
+                leadingIcon     = { Icon(Icons.Default.Person, null, tint = MaterialTheme.colorScheme.primary) },
                 singleLine      = true,
                 modifier        = Modifier.fillMaxWidth(),
                 shape           = RoundedCornerShape(14.dp),
@@ -252,7 +252,7 @@ private fun LoginScreen(
                 value                = password,
                 onValueChange        = { password = it },
                 label                = { Text("Password") },
-                leadingIcon          = { Icon(Icons.Default.Lock, null, tint = Primary) },
+                leadingIcon          = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary) },
                 trailingIcon         = {
                     IconButton(onClick = { showPass = !showPass }) {
                         Icon(
@@ -281,7 +281,7 @@ private fun LoginScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape  = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             ) {
                 Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
@@ -304,7 +304,7 @@ private fun LoginScreen(
                 Icon(
                     imageVector        = Icons.Default.Code,
                     contentDescription = null,
-                    tint               = Primary.copy(alpha = 0.80f),
+                    tint               = MaterialTheme.colorScheme.primary.copy(alpha = 0.80f),
                     modifier           = Modifier.size(14.dp),
                 )
                 Spacer(Modifier.width(5.dp))
@@ -317,7 +317,7 @@ private fun LoginScreen(
                     text       = "Utkarsh Gupta",
                     fontSize   = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color      = Primary,
+                    color      = MaterialTheme.colorScheme.primary,
                 )
             }
 
