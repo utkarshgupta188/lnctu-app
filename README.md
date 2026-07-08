@@ -1,6 +1,6 @@
-# LNCT Attendance Fetcher
+# LNCTU Attendance
 
-A tiny Compose Android app that fetches and shows your attendance using your own API endpoint.
+An open-source Jetpack Compose Android app that fetches and displays your academic attendance and class schedule from the LNCTU portal, paired with premium Glance home screen widgets.
 
 Default endpoint used: 
 
@@ -8,51 +8,21 @@ Default endpoint used:
 https://lnctu.vercel.app/attendance?username=&password=
 ```
 
-It expects a JSON response shaped like:
-
-```
-{
-  "success": true,
-  "message": "Logged in and fetched",
-  "data": {
-    "total_classes": 309,
-    "present": 238,
-    "absent": 71,
-    "percentage": 77.02,
-    "overall_percentage": 77.02,
-    "attended_classes": 238
-  }
-}
-```
-
 ## Features
-- Simple UI with fields for base URL, username, and password
-- HTTPS by default; cleartext allowed for local/dev (can be tightened later)
-- Parses and displays totals and percentages from the JSON response
-- ViewModel + coroutines for background network calls
+* **Interactive Dashboard**: Modern Material 3 UI with course progress metrics, risk analysis, leave planner, and timetable viewer.
+* **M3 Glance Home Screen Widgets**: 
+  * **Attendance Widget**: Shows overall percentage and stats. Fully resizable (`SizeMode.Exact`) with custom translucent glassmorphism layouts.
+  * **Timetable Widget**: Displays today's lectures in a scrollable list view.
+  * **Live Syncing Status**: Immediate home screen visual feedback when syncing/refreshing.
+* **Offline-First Cache**: Stores fetched attendance and timetable schedules in a local SQLite database to load instantly and fall back gracefully when offline.
+* **🔐 Keystore AES-GCM Encryption**: User passwords are encrypted using hardware-backed cryptography via the `AndroidKeyStore` before local serialization.
+* **⏰ Background Daily Alert Checks**: Utilizes system alarms to query attendance in the background daily at 9:00 AM, triggering high-priority alerts if course attendance drops below the 75% threshold.
 
-## How to run
-- Open the project in Android Studio and Run on a device or emulator
-- Or build a debug APK via Gradle and install to a connected device
+## Architecture
+Android App → Open-source API → LNCTU portal
 
-## How to use
-1. Launch the app
-2. Leave the Base URL as-is or change it to your own (must accept `username` and `password` query params)
-3. Enter username and password
-4. Tap "Fetch Attendance"
-5. The result section will show totals and percentages if the API returns `success: true`, otherwise it shows the API error message
-
-## Customize
-- UI: `app/src/main/java/com/meow/lnctattendance/MainActivity.kt`
-- Networking/Parsing: `app/src/main/java/com/meow/lnctattendance/AttendanceViewModel.kt`
-- Manifest & permissions: `app/src/main/AndroidManifest.xml`
-
-If your API changes shape, adapt the parser in `parseAttendance` (same file as the ViewModel) and the UI fields in `AttendanceResult`.
-
-## Notes
-- INTERNET permission is included
-- `usesCleartextTraffic` is enabled for development convenience. If your API is HTTPS-only, you can set it to `false`.
-- No credentials are stored; they are only used to call the endpoint.
+API repository:
+https://github.com/utkarshgupta188/lnctu
 
 ## Screenshots
 
@@ -67,14 +37,6 @@ If your API changes shape, adapt the parser in `parseAttendance` (same file as t
 | Timetable                               |
 |-----------------------------------------|
 | ![Timetable](Screenshots/Timetable.png) |
-
-## Architecture
-Android App → Open-source API → LNCTU portal
-
-The API fetches attendance data using the user's session token.
-
-API repository:
-https://github.com/utkarshgupta188/lnctu
 
 ## Disclaimer
 This project is not affiliated with LNCT University.
