@@ -105,7 +105,7 @@ private val TranslucentSurface = androidx.glance.color.ColorProvider(
 
 private val KEY_LAST_FETCH = longPreferencesKey("last_fetch_ms")
 
-private val SIZE_LARGE  = DpSize(200.dp, 110.dp)
+private val SIZE_LARGE  = DpSize(180.dp, 90.dp)
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -391,30 +391,38 @@ fun AttendanceWidgetLarge(
                 )
             }
 
-            // Stats vertical capsules
+            Spacer(modifier = GlanceModifier.width(20.dp)) // Maintain enough gap with overall % on left
+
+            // Stats vertical capsules - dynamically scaled and spread
             Row(
+                modifier = GlanceModifier.defaultWeight(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                VerticalStatPill("P", present.toString(), Color(0xFF4CAF50))
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                VerticalStatPill("A", absent.toString(), Color(0xFFE53935))
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                VerticalStatPill("T", total.toString(), GlanceTheme.colors.primary)
+                VerticalStatPill("P", present.toString(), Color(0xFF4CAF50), modifier = GlanceModifier.defaultWeight())
+                Spacer(modifier = GlanceModifier.width(6.dp))
+                VerticalStatPill("A", absent.toString(), Color(0xFFE53935), modifier = GlanceModifier.defaultWeight())
+                Spacer(modifier = GlanceModifier.width(6.dp))
+                VerticalStatPill("T", total.toString(), GlanceTheme.colors.primary, modifier = GlanceModifier.defaultWeight())
             }
         }
     }
 }
 
 @Composable
-fun VerticalStatPill(label: String, value: String, color: Color) {
-    VerticalStatPill(label, value, androidx.glance.unit.ColorProvider(color))
+fun VerticalStatPill(label: String, value: String, color: Color, modifier: GlanceModifier = GlanceModifier) {
+    VerticalStatPill(label, value, androidx.glance.unit.ColorProvider(color), modifier)
 }
 
 @Composable
-fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glance.unit.ColorProvider) {
+fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glance.unit.ColorProvider, modifier: GlanceModifier = GlanceModifier) {
+    val fontSizeVal = when (value.length) {
+        0, 1 -> 26.sp
+        2    -> 22.sp
+        else -> 16.sp
+    }
+
     Column(
-        modifier = GlanceModifier
-            .width(56.dp) // Even wider to accommodate massive text
+        modifier = modifier
             .height(88.dp) // Taller capsules
             .background(TranslucentSurface) // High-contrast dynamic translucent look
             .cornerRadius(28.dp) // Extra rounded M3 capsule corners
@@ -426,7 +434,7 @@ fun VerticalStatPill(label: String, value: String, colorProvider: androidx.glanc
             text = value,
             style = TextStyle(
                 color = colorProvider,
-                fontSize = 26.sp, // Ultra bold, massive, clear numbers
+                fontSize = fontSizeVal, // Dynamically adjusted font size to fit hundreds
                 fontWeight = FontWeight.Bold
             )
         )
